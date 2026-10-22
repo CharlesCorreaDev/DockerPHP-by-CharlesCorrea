@@ -49,6 +49,37 @@ update_active_version_in_dynamic_yml() {
     fi
 }
 
+sync_allowed_ips_to_traefik() {
+    local env_file=".env"
+    local dynamic_file="load-balance/dynamic.yml"
+    if [ -f "$env_file" ] && [ -f "$dynamic_file" ]; then
+        local raw_ips=$(grep "^ALLOWED_IPS=" "$env_file" | cut -d'=' -f2-)
+        if [ -n "$raw_ips" ]; then
+            local formatted_yaml=""
+            IFS=',' read -ra ADDR <<< "$raw_ips"
+            for ip in "${ADDR[@]}"; do
+                ip_clean=$(echo "$ip" | xargs)
+                if [ -n "$ip_clean" ]; then
+                    formatted_yaml="${formatted_yaml}            - \"${ip_clean}\"\n"
+                fi
+            done
+            # Atualiza o bloco trustedIPs no dynamic.yml
+            awk -v ips="$formatted_yaml" '
+                /trustedIPs:/ {
+                    print $0;
+                    printf "%b", ips;
+                    skip=1;
+                    next;
+                }
+                skip && /^[[:space:]]*- "/ { next }
+                skip && !/^[[:space:]]*- "/ { skip=0 }
+                { print }
+            ' "$dynamic_file" > "${dynamic_file}.tmp" && mv "${dynamic_file}.tmp" "$dynamic_file"
+            echo -e "${GREEN}[OK] Whitelist de IPs sincronizada com o Traefik Load Balancer.${NC}"
+        fi
+    fi
+}
+
 update_env_var() {
     local key="$1"
     local value="$2"
@@ -156,6 +187,7 @@ run_requirements_check() {
 
 show_header
 ensure_env_file
+sync_allowed_ips_to_traefik
 check_and_install_dependencies
 run_requirements_check
 
@@ -263,12 +295,15 @@ case "$choice" in
         [ -n "$dom" ] && update_env_var "DOMAIN" "$dom"
         read -rp "E-mail para Let's Encrypt SSL (Enter para manter): " email
         [ -n "$email" ] && update_env_var "LETSENCRYPT_EMAIL" "$email"
+        read -rp "IPs / Redes permitidas na Whitelist (separados por vírgula ou Enter para manter): " allowed_ips
+        [ -n "$allowed_ips" ] && update_env_var "ALLOWED_IPS" "$allowed_ips"
         read -rp "Habilitar Cache no Traefik? [s/n]: " cache
         if [ "$cache" = "s" ] || [ "$cache" = "S" ]; then
             update_env_var "ENABLE_CACHE" "true"
         elif [ "$cache" = "n" ] || [ "$cache" = "N" ]; then
             update_env_var "ENABLE_CACHE" "false"
         fi
+        sync_allowed_ips_to_traefik
         echo -e "${GREEN}[OK] Configurações atualizadas no arquivo .env!${NC}"
         ;;
     11)

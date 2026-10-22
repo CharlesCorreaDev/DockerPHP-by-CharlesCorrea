@@ -47,6 +47,29 @@ function Update-ActiveVersionInDynamicYml($versionShort) {
     }
 }
 
+function Sync-AllowedIpsToTraefik {
+    $envFile = "$root\.env"
+    $dynamicFile = "$root\load-balance\dynamic.yml"
+    if ((Test-Path $envFile) -and (Test-Path $dynamicFile)) {
+        $allowedIpsLine = Get-Content $envFile | Where-Object { $_ -match "^ALLOWED_IPS=" }
+        if ($allowedIpsLine) {
+            $rawIps = ($allowedIpsLine -replace "^ALLOWED_IPS=", "").Trim()
+            if ($rawIps) {
+                $ips = $rawIps.Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" }
+                $yamlIps = ($ips | ForEach-Object { "            - `"$_`"" }) -join "`r`n"
+                $content = Get-Content $dynamicFile -Raw
+                $newContent = [System.Text.RegularExpressions.Regex]::Replace(
+                    $content,
+                    '(trustedIPs:\s*\r?\n)(?:\s*-\s*"[^"]+"\s*\r?\n)+',
+                    "`${1}$yamlIps`r`n"
+                )
+                Set-Content -Path $dynamicFile -Value $newContent -Encoding UTF8
+                Write-Host " [OK] Whitelist de IPs ($rawIps) sincronizada com o Traefik Load Balancer." -ForegroundColor Green
+            }
+        }
+    }
+}
+
 function Update-EnvVar($key, $value) {
     $envFile = "$root\.env"
     if (Test-Path $envFile) {
@@ -206,6 +229,7 @@ function Run-RequirementsCheck {
 
 Show-Header
 Ensure-EnvFile
+Sync-AllowedIpsToTraefik
 Check-And-Install-Dependencies
 Run-RequirementsCheck
 
@@ -313,9 +337,12 @@ switch ($choice) {
         if ($dom) { Update-EnvVar "DOMAIN" $dom }
         $email = Read-Host "E-mail para Let's Encrypt SSL (Enter para manter)"
         if ($email) { Update-EnvVar "LETSENCRYPT_EMAIL" $email }
+        $allowedIps = Read-Host "IPs / Redes permitidas na Whitelist (separados por vírgula ou Enter para manter)"
+        if ($allowedIps) { Update-EnvVar "ALLOWED_IPS" $allowedIps }
         $cache = Read-Host "Habilitar Cache no Traefik? [s/n]"
         if ($cache -eq 's' -or $cache -eq 'S') { Update-EnvVar "ENABLE_CACHE" "true" }
         elseif ($cache -eq 'n' -or $cache -eq 'N') { Update-EnvVar "ENABLE_CACHE" "false" }
+        Sync-AllowedIpsToTraefik
         Write-Host " [OK] Configurações atualizadas no arquivo .env!" -ForegroundColor Green
     }
     "11" {

@@ -1,6 +1,6 @@
-# ==============================================================================
-# Configuração Dinâmica do Traefik v2.11 Load Balancer
-# Roteia e balanceia o tráfego para os clusters WAF (PHP 7.4, 8.2, 8.3, 8.4, 8.5)
+﻿# ==============================================================================
+# ConfiguraÃ§Ã£o DinÃ¢mica do Traefik v2.11 Load Balancer
+# Roteia e balanceia o trÃ¡fego para os clusters WAF (PHP 7.4, 8.2, 8.3, 8.4, 8.5)
 # ==============================================================================
 
 http:
@@ -30,7 +30,7 @@ http:
         - auth-loadbalance
         - strip-loadbalance
 
-    # Router Healthcheck Estático Ultra-rápido (Responde 200 OK direto na borda)
+    # Router Healthcheck EstÃ¡tico Ultra-rÃ¡pido (Responde 200 OK direto na borda)
     router-healthcheck:
       entryPoints:
         - web
@@ -42,7 +42,7 @@ http:
       middlewares:
         - mw-static-healthz
 
-    # Router HTTP Porta 80 -> Acesso Direto com Middlewares de Proteção
+    # Router HTTP Porta 80 -> Acesso Direto com Middlewares de ProteÃ§Ã£o
     router-http:
       entryPoints:
         - web
@@ -52,7 +52,7 @@ http:
       middlewares:
         - chain-security
 
-    # Router HTTPS Porta 443 -> Terminação TLS com Certificados
+    # Router HTTPS Porta 443 -> TerminaÃ§Ã£o TLS com Certificados
     router-https:
       entryPoints:
         - websecure
@@ -63,7 +63,7 @@ http:
       middlewares:
         - chain-security
 
-    # Rotas específicas por versão
+    # Rotas especÃ­ficas por versÃ£o
     router-php74:
       entryPoints:
         - web
@@ -115,7 +115,7 @@ http:
         - strip-php85
 
   middlewares:
-    # Cadeia global de middlewares de segurança e otimização
+    # Cadeia global de middlewares de seguranÃ§a e otimizaÃ§Ã£o
     chain-security:
       chain:
         middlewares:
@@ -216,7 +216,7 @@ http:
             - regex: "(?i)PHP Version"
               replacement: "Enterprise PHP Runtime"
 
-    # 11. Cabeçalhos de Segurança Nativos
+    # 11. CabeÃ§alhos de SeguranÃ§a Nativos
     mw-security-headers:
       headers:
         frameDeny: false
@@ -239,18 +239,18 @@ http:
             Server: "Microsoft-IIS/10.0"
             X-Powered-By: "ASP.NET"
 
-    # 13. Static Response - Modo Manutenção Instantâneo (Opcional / Sob demanda)
+    # 13. Static Response - Modo ManutenÃ§Ã£o InstantÃ¢neo (Opcional / Sob demanda)
     mw-static-maintenance:
       plugin:
         staticresponse:
           StatusCode: "503"
-          Body: "<!DOCTYPE html><html><head><title>Manutencao Programada</title><style>body{font-family:sans-serif;text-align:center;padding:50px;background:#1a1a1a;color:#fff;}</style></head><body><h1>🛠️ Servidor em Manutencao</h1><p>Estamos realizando melhorias programadas em nosso cluster. Retorne em breve.</p></body></html>"
+          Body: "<!DOCTYPE html><html><head><title>Manutencao Programada</title><style>body{font-family:sans-serif;text-align:center;padding:50px;background:#1a1a1a;color:#fff;}</style></head><body><h1>ðŸ› ï¸ Servidor em Manutencao</h1><p>Estamos realizando melhorias programadas em nosso cluster. Retorne em breve.</p></body></html>"
           Headers:
             Content-Type: "text/html; charset=utf-8"
             Retry-After: "300"
             Server: "Microsoft-IIS/10.0"
 
-    # 14. Tor Block - Bloqueio de nós de saída da rede Tor na borda
+    # 14. Tor Block - Bloqueio de nÃ³s de saÃ­da da rede Tor na borda
     mw-tor-block:
       plugin:
         torblock:
@@ -263,7 +263,7 @@ http:
           useragentblocklisturls:
             - "https://raw.githubusercontent.com/mitchellkrogza/nginx-ultimate-bad-bot-blocker/master/_generator_lists/bad-user-agents.list"
 
-    # 16. Validate Headers - Sanitização rigorosa de cabeçalhos
+    # 16. Validate Headers - SanitizaÃ§Ã£o rigorosa de cabeÃ§alhos
     mw-validate-headers:
       plugin:
         validate-headers:
@@ -278,7 +278,7 @@ http:
               values:
                 - ".+"
 
-    # 17. CORS Preflight - Resposta 204 automática na borda para requisições OPTIONS
+    # 17. CORS Preflight - Resposta 204 automÃ¡tica na borda para requisiÃ§Ãµes OPTIONS
     mw-cors-preflight:
       plugin:
         corspreflight:
@@ -325,13 +325,13 @@ http:
           - "/php85"
 
   services:
-    # Backend Padrão Ativo (aponta para o WAF da versão configurada)
+    # Backend PadrÃ£o Ativo (aponta para o WAF da versÃ£o configurada)
     service-cluster-lb:
       loadBalancer:
         servers:
           - url: "http://app_waf_php83:8080"
 
-    # Serviços individuais
+    # ServiÃ§os individuais
     service-php74:
       loadBalancer:
         servers:
@@ -356,3 +356,4 @@ http:
       loadBalancer:
         servers:
           - url: "http://app_waf_php85:8080"
+

@@ -1,0 +1,20 @@
+{
+  "tasks": [
+    {
+      "id": "waf-blocklist-update",
+      "name": "Atualização Automática de Threat Intelligence (WAF)",
+      "schedule_hours": 12,
+      "enabled": true,
+      "target_script": "/scripts/update_blocklist.sh",
+      "target_container_pattern": "waf"
+    },
+    {
+      "id": "waf-report-spam",
+      "name": "Reporte de Invasores Capturados no Honeypot (StopForumSpam)",
+      "schedule_hours": 1,
+      "enabled": true,
+      "target_script": "/scripts/report_spam.sh",
+      "target_container_pattern": "waf"
+    }
+  ]
+}

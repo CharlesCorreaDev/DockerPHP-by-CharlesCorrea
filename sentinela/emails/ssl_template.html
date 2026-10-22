@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Notificação de Certificado SSL/TLS</title>
+    <style type="text/css">
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        height: 100% !important;
+        background-color: #0b0f19;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: #f1f5f9;
+        -webkit-font-smoothing: antialiased;
+      }
+      .email-bg {
+        background-color: #0b0f19;
+        background-image: radial-gradient(at 50% 0%, #1e1b4b 0%, #0b0f19 80%);
+        padding: 40px 16px;
+      }
+      .card-shell {
+        max-width: 620px;
+        margin: 0 auto;
+        background-color: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+      .header-gradient {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        padding: 34px 32px 28px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .badge-pill {
+        display: inline-block;
+        padding: 5px 14px;
+        background-color: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: #ffffff;
+        margin-bottom: 12px;
+      }
+      .header-title {
+        margin: 0;
+        font-size: 23px;
+        font-weight: 800;
+        line-height: 1.25;
+        letter-spacing: -0.5px;
+        color: #ffffff;
+      }
+      .header-subtitle {
+        margin: 8px 0 0;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 500;
+      }
+      .content-body {
+        padding: 30px 32px 24px;
+      }
+      .domain-badge-box {
+        background-color: #182234;
+        border: 1px solid #283548;
+        border-radius: 12px;
+        padding: 14px 20px;
+        margin-bottom: 22px;
+        text-align: center;
+      }
+      .domain-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+      .domain-value {
+        font-size: 17px;
+        font-weight: 800;
+        color: #38bdf8;
+      }
+      .domain-value a {
+        color: #38bdf8;
+        text-decoration: none;
+      }
+      .lead-text {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #94a3b8;
+        margin: 0 0 20px;
+      }
+      .table-info {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: #182234;
+        border: 1px solid #283548;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 22px;
+      }
+      .table-info td {
+        padding: 12px 18px;
+        font-size: 13px;
+        border-bottom: 1px solid #283548;
+      }
+      .table-info tr:last-child td {
+        border-bottom: none;
+      }
+      .table-info td.label {
+        font-weight: 700;
+        width: 35%;
+        color: #94a3b8;
+        background-color: #111a2c;
+        border-right: 1px solid #283548;
+      }
+      .table-info td.val {
+        color: #f1f5f9;
+        word-break: break-all;
+      }
+      .status-tag {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-weight: 800;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        color: #ffffff;
+      }
+      .tip-card {
+        margin-top: 22px;
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid #334155;
+        border-left: 4px solid #38bdf8;
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .tip-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #e2e8f0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+      .tip-desc {
+        font-size: 12px;
+        line-height: 1.5;
+        color: #94a3b8;
+        margin: 0;
+      }
+      .tip-desc code {
+        background: #0f172a;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #38bdf8;
+        font-family: monospace;
+      }
+      .email-footer {
+        padding: 18px 32px 24px;
+        border-top: 1px solid #1f2937;
+        background-color: #0c1220;
+        text-align: center;
+        font-size: 11px;
+        color: #64748b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-bg">
+      <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center">
+            <div class="card-shell">
+              
+              <!-- Gradient Header -->
+              <div class="header-gradient">
+                <span class="badge-pill">🔒 Segurança &bull; Monitor de Certificados SSL/TLS</span>
+                <h1 class="header-title">{{ SSL_TITLE }}</h1>
+                <p class="header-subtitle">{{ SSL_SUBTITLE }}</p>
+              </div>
+
+              <!-- Content -->
+              <div class="content-body">
+
+                <!-- Domain Callout -->
+                <div class="domain-badge-box">
+                  <div class="domain-label">Domínio / Host Monitorado</div>
+                  <div class="domain-value">
+                    <a href="https://{{ DOMAIN }}" target="_blank">https://{{ DOMAIN }}</a>
+                  </div>
+                </div>
+
+                <p class="lead-text">{{ SSL_MESSAGE }}</p>
+
+                <!-- Certificate Info Table -->
+                <table class="table-info" role="presentation">
+                  <tr>
+                    <td class="label">Status do Certificado:</td>
+                    <td class="val">
+                      <span class="status-tag">{{ STATUS_LABEL }}</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="label">Dias Restantes:</td>
+                    <td class="val"><strong style="font-size: 16px;">{{ DAYS_REMAINING }} dias</strong></td>
+                  </tr>
+                  <tr>
+                    <td class="label">Data de Expiração:</td>
+                    <td class="val">{{ EXPIRY_DATE }}</td>
+                  </tr>
+                  <tr>
+                    <td class="label">Autoridade Emissora (CA):</td>
+                    <td class="val"><code>{{ ISSUER }}</code></td>
+                  </tr>
+                  <tr>
+                    <td class="label">Identificador / Serial:</td>
+                    <td class="val"><code style="font-size: 11px;">{{ SERIAL_NUMBER }}</code></td>
+                  </tr>
+                </table>
+
+                <!-- Action Card -->
+                <div class="tip-card">
+                  <div class="tip-title">{{ TIP_TITLE }}</div>
+                  <p class="tip-desc">{{ TIP_TEXT }}</p>
+                </div>
+
+              </div>
+
+              <!-- Footer -->
+              <div class="email-footer">
+                Enviado automaticamente pelo <strong>Docker Health &amp; Telemetry Sentinel</strong>.<br />
+                Cluster Traefik &bull; Let's Encrypt ACME &bull; {{ DOMAIN }}
+              </div>
+
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,79 @@
+# ==============================================================================
+# Configuração Estática do Traefik v2.11 Load Balancer & Reverse Proxy
+# ==============================================================================
+
+api:
+  dashboard: true
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# ==============================================================================
+# Plugins Experimentais Oficiais da Comunidade Traefik
+# ==============================================================================
+experimental:
+  plugins:
+    traefik-real-ip:
+      moduleName: "github.com/zekihan/traefik-real-ip"
+      version: "v0.1.25"
+    fail2ban:
+      moduleName: "github.com/tomMoulard/fail2ban"
+      version: "v0.9.0"
+    geoblock:
+      moduleName: "github.com/PascalMinder/geoblock"
+      version: "v0.3.8"
+    cache:
+      moduleName: "github.com/traefik/plugin-simplecache"
+      version: "v0.2.1"
+    requestid:
+      moduleName: "github.com/pipe01/plugin-requestid"
+      version: "v1.0.0"
+    error-page:
+      moduleName: "github.com/melchor629/traefik-error-page"
+      version: "v0.0.5"
+    bandwidthlimiter:
+      moduleName: "github.com/hhftechnology/bandwidthlimiter"
+      version: "v1.0.0"
+    query-modification:
+      moduleName: "github.com/kingjan1999/traefik-plugin-query-modification"
+      version: "v1.0.0"
+    redirectLocation:
+      moduleName: "github.com/SchmitzDan/traefik-plugin-redirect-location"
+      version: "v0.0.2"
+    rewrite-body:
+      moduleName: "github.com/packruler/rewrite-body"
+      version: "v1.2.0"
+    staticresponse:
+      moduleName: "github.com/jdel/staticresponse"
+      version: "v0.0.1"
+    torblock:
+      moduleName: "github.com/jpxd/torblock"
+      version: "v0.1.1"
+    bad-bot-blocker:
+      moduleName: "github.com/discoverygarden/traefik-ultimate-bad-bot-blocker"
+      version: "v0.3.0"
+    validate-headers:
+      moduleName: "github.com/frankforpresident/traefik-plugin-validate-headers"
+      version: "v0.0.3"
+    corspreflight:
+      moduleName: "github.com/Medzoner/traefik-plugin-cors-preflight"
+      version: "v1.2.0"
+
+log:
+  level: INFO
+  format: common
+  filePath: "/var/log/traefik/traefik.log"
+
+accessLog:
+  format: common
+  filePath: "/var/log/traefik/access.log"
+  bufferingSize: 100

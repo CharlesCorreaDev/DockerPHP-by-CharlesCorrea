@@ -1,0 +1,358 @@
+# ==============================================================================
+# Configuração Dinâmica do Traefik v2.11 Load Balancer
+# Roteia e balanceia o tráfego para os clusters WAF (PHP 7.4, 8.2, 8.3, 8.4, 8.5)
+# ==============================================================================
+
+http:
+  routers:
+    # Router Protegido do Dashboard do Load Balancer (/dashboard, /api)
+    router-dashboard:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/dashboard`) || PathPrefix(`/api`)"
+      priority: 1000
+      service: api@internal
+      tls: {}
+      middlewares:
+        - auth-loadbalance
+
+    # Redirecionamento amigavel de /load-balance para /dashboard/
+    router-dashboard-loadbalance:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/load-balance`)"
+      priority: 1000
+      service: api@internal
+      tls: {}
+      middlewares:
+        - auth-loadbalance
+        - strip-loadbalance
+
+    # Router Healthcheck Estático Ultra-rápido (Responde 200 OK direto na borda)
+    router-healthcheck:
+      entryPoints:
+        - web
+        - websecure
+      rule: "Path(`/healthz`) || Path(`/ping`)"
+      priority: 2000
+      service: service-cluster-lb
+      tls: {}
+      middlewares:
+        - mw-static-healthz
+
+    # Router HTTP Porta 80 -> Acesso Direto com Middlewares de Proteção
+    router-http:
+      entryPoints:
+        - web
+      rule: "PathPrefix(`/`)"
+      priority: 100
+      service: service-cluster-lb
+      middlewares:
+        - chain-security
+
+    # Router HTTPS Porta 443 -> Terminação TLS com Certificados
+    router-https:
+      entryPoints:
+        - websecure
+      rule: "PathPrefix(`/`)"
+      priority: 100
+      service: service-cluster-lb
+      tls: {}
+      middlewares:
+        - chain-security
+
+    # Rotas específicas por versão
+    router-php74:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/php74`)"
+      service: service-php74
+      middlewares:
+        - chain-security
+        - strip-php74
+
+    router-php82:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/php82`)"
+      service: service-php82
+      middlewares:
+        - chain-security
+        - strip-php82
+
+    router-php83:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/php83`)"
+      service: service-php83
+      middlewares:
+        - chain-security
+        - strip-php83
+
+    router-php84:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/php84`)"
+      service: service-php84
+      middlewares:
+        - chain-security
+        - strip-php84
+
+    router-php85:
+      entryPoints:
+        - web
+        - websecure
+      rule: "PathPrefix(`/php85`)"
+      service: service-php85
+      middlewares:
+        - chain-security
+        - strip-php85
+
+  middlewares:
+    # Cadeia global de middlewares de segurança e otimização
+    chain-security:
+      chain:
+        middlewares:
+          - mw-real-ip
+          - mw-request-id
+          - mw-tor-block
+          - mw-bad-bot-blocker
+          - mw-validate-headers
+          - mw-cors-preflight
+          - mw-security-headers
+          - mw-cache
+
+    # 1. Traefik Real IP
+    mw-real-ip:
+      plugin:
+        traefik-real-ip:
+          thrustLocal: true
+          thrustCloudFlare: true
+          trustedIPs:
+            - "127.0.0.1/32"
+            - "10.0.0.0/8"
+            - "172.16.0.0/12"
+            - "192.168.0.0/16"
+          logLevel: "info"
+          denyUntrusted: false
+          xForwardedForMode: "append"
+
+    # 2. X-Request-ID
+    mw-request-id:
+      plugin:
+        requestid: {}
+
+    # 3. Simple Cache
+    mw-cache:
+      plugin:
+        cache:
+          path: "/tmp/traefik-cache"
+          maxExpiry: 300
+          cleanup: 600
+          addStatusHeader: true
+
+    # 4. Fail2Ban
+    mw-fail2ban:
+      plugin:
+        fail2ban:
+          rules:
+            enabled: true
+            bantime: "1h"
+            findtime: "10m"
+            maxretry: 100
+
+    # 5. Geo-Block
+    mw-geoblock:
+      plugin:
+        geoblock:
+          allowLocalRequests: true
+          blackListMode: true
+          countries:
+            - "CN"
+            - "RU"
+            - "KP"
+
+    # 6. Error Pages
+    mw-error-pages:
+      plugin:
+        error-page:
+          status:
+            - "500-599"
+          service: "https://http.cat"
+          query: "/{status}"
+          emptyOnly: true
+
+    # 7. Bandwidth Limiter
+    mw-bandwidth-limiter:
+      plugin:
+        bandwidthlimiter:
+          rate: 1048576 # 1 MB/s
+
+    # 8. Query Parameter Modification
+    mw-query-modification:
+      plugin:
+        query-modification:
+          type: "modify"
+          paramName: "debug"
+          newValue: "false"
+
+    # 9. Modify Redirect Location
+    mw-redirect-location:
+      plugin:
+        redirectLocation:
+          default: true
+
+    # 10. Rewrite Body
+    mw-rewrite-body:
+      plugin:
+        rewrite-body:
+          rewrites:
+            - regex: "(?i)PHP Version"
+              replacement: "Enterprise PHP Runtime"
+
+    # 11. Cabeçalhos de Segurança Nativos
+    mw-security-headers:
+      headers:
+        frameDeny: false
+        customFrameOptionsValue: "SAMEORIGIN"
+        contentTypeNosniff: true
+        browserXssFilter: true
+        sslRedirect: false
+        customResponseHeaders:
+          Server: "Microsoft-IIS/10.0"
+          X-Powered-By: "ASP.NET"
+
+    # 12. Static Response - Healthcheck Ultra-leve (Sem passar por WAF/PHP)
+    mw-static-healthz:
+      plugin:
+        staticresponse:
+          StatusCode: "200"
+          Body: "OK"
+          Headers:
+            Content-Type: "text/plain; charset=utf-8"
+            Server: "Microsoft-IIS/10.0"
+            X-Powered-By: "ASP.NET"
+
+    # 13. Static Response - Modo Manutenção Instantâneo (Opcional / Sob demanda)
+    mw-static-maintenance:
+      plugin:
+        staticresponse:
+          StatusCode: "503"
+          Body: "<!DOCTYPE html><html><head><title>Manutencao Programada</title><style>body{font-family:sans-serif;text-align:center;padding:50px;background:#1a1a1a;color:#fff;}</style></head><body><h1>🛠️ Servidor em Manutencao</h1><p>Estamos realizando melhorias programadas em nosso cluster. Retorne em breve.</p></body></html>"
+          Headers:
+            Content-Type: "text/html; charset=utf-8"
+            Retry-After: "300"
+            Server: "Microsoft-IIS/10.0"
+
+    # 14. Tor Block - Bloqueio de nós de saída da rede Tor na borda
+    mw-tor-block:
+      plugin:
+        torblock:
+          enabled: true
+
+    # 15. Bad Bot Blocker - Bloqueio de User-Agents abusivos conhecidos
+    mw-bad-bot-blocker:
+      plugin:
+        bad-bot-blocker:
+          useragentblocklisturls:
+            - "https://raw.githubusercontent.com/mitchellkrogza/nginx-ultimate-bad-bot-blocker/master/_generator_lists/bad-user-agents.list"
+
+    # 16. Validate Headers - Sanitização rigorosa de cabeçalhos
+    mw-validate-headers:
+      plugin:
+        validate-headers:
+          error:
+            statuscode: 403
+            message: "Forbidden: Malformed or missing essential request headers."
+          headers:
+            - name: "User-Agent"
+              matchtype: "one"
+              required: true
+              regex: true
+              values:
+                - ".+"
+
+    # 17. CORS Preflight - Resposta 204 automática na borda para requisições OPTIONS
+    mw-cors-preflight:
+      plugin:
+        corspreflight:
+          code: 204
+          method: "OPTIONS"
+          allowOrigins: "*"
+          allowMethods: "GET,POST,PUT,DELETE,PATCH,OPTIONS"
+          allowHeaders: "Origin,Content-Type,Accept,Authorization,X-Requested-With,X-Request-ID"
+
+    # Prefix Strippers
+    auth-loadbalance:
+      basicAuth:
+        users:
+          - "admin:$2y$05$17R7vSANMuy5MI7o2T1ENeNem4PfX.rVo5CfSwk5ukCfBulDZAJzO"
+
+    strip-loadbalance:
+      stripPrefix:
+        prefixes:
+          - "/load-balance"
+
+    strip-php74:
+      stripPrefix:
+        prefixes:
+          - "/php74"
+
+    strip-php82:
+      stripPrefix:
+        prefixes:
+          - "/php82"
+
+    strip-php83:
+      stripPrefix:
+        prefixes:
+          - "/php83"
+
+    strip-php84:
+      stripPrefix:
+        prefixes:
+          - "/php84"
+
+    strip-php85:
+      stripPrefix:
+        prefixes:
+          - "/php85"
+
+  services:
+    # Backend Padrão Ativo (aponta para o WAF da versão configurada)
+    service-cluster-lb:
+      loadBalancer:
+        servers:
+          - url: "http://app_waf_php83:8080"
+
+    # Serviços individuais
+    service-php74:
+      loadBalancer:
+        servers:
+          - url: "http://app_waf_php74:8080"
+
+    service-php82:
+      loadBalancer:
+        servers:
+          - url: "http://app_waf_php82:8080"
+
+    service-php83:
+      loadBalancer:
+        servers:
+          - url: "http://app_waf_php83:8080"
+
+    service-php84:
+      loadBalancer:
+        servers:
+          - url: "http://app_waf_php84:8080"
+
+    service-php85:
+      loadBalancer:
+        servers:
+          - url: "http://app_waf_php85:8080"

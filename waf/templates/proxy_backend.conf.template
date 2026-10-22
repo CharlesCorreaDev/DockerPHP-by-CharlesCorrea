@@ -1,0 +1,61 @@
+proxy_set_header Host ${PROXY_HOST_HEADER};
+proxy_set_header Proxy "";
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection $connection_upgrade;
+proxy_set_header ${REAL_IP_PROXY_HEADER} $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Port $http_x_forwarded_port;
+proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+proxy_set_header X-WAF-Protection "OWASP-ModSecurity-CRS";
+proxy_set_header X-Edge-Mitigated "CVE-2026-109618,CVE-2026-109619";
+
+# Camuflagem de borda: Remove cabeçalhos reais de PHP, Apache e Nginx
+proxy_hide_header X-Powered-By;
+proxy_hide_header Server;
+
+# Spoofing primário solicitado: Microsoft-IIS / ASP.NET
+more_set_headers "Server: Microsoft-IIS/10.0";
+more_set_headers "X-Powered-By: ASP.NET";
+more_set_headers "X-AspNet-Version: 4.0.30319";
+more_set_headers "srv: 01";
+more_set_headers "Set-Cookie: ASP.NET_SessionId=x$pid$msec; Path=/; HttpOnly; SameSite=Lax";
+
+
+# ==============================================================================
+# Camuflagem e Fingerprinting Idêntico ao Cloudflare Real
+# ==============================================================================
+more_set_headers "alt-svc: h3=\":443\"; ma=86400";
+more_set_headers "cf-cache-status: DYNAMIC";
+more_set_headers "cf-ray: a4e8d0c3e9fdf1bd-GRU";
+more_set_headers "content-security-policy: object-src 'none'";
+more_set_headers "content-security-policy-report-only: script-src 'unsafe-inline' 'unsafe-eval'; connect-src 'none'; report-uri https://csp-reporting.cloudflare.com/cdn-cgi/script_monitor/report?m=9LlCF2JAcMHGEJaR1SRLsYU2gI6MTx1IUc5sVGW7qTQ-1792675395.1845088-1.0.1.1-VvKajLyfnzb9vJGXb05WNfhCkDH5KR2JyUjsVwfBtQTGu1EoPpKnJ8J75kSXGR.u8nFcCcbQuY7MvCput2V5rOZmK.9wrYvwywqA5o6CuUuWHit0SkE6WgjEvRUteLFde_zT8j9TUoch651e8ClViDwNNrFwHrzvtzLfJQSS.NYEPWBO3ikqD8KY9INKOAyq; report-to cf-csp-endpoint";
+more_set_headers "nel: {\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}";
+more_set_headers "permissions-policy: private-state-token-redemption=(self \"https://www.google.com\" \"https://www.gstatic.com\" \"https://recaptcha.net\" \"https://challenges.cloudflare.com\" \"https://hcaptcha.com\"), private-state-token-issuance=(self \"https://www.google.com\" \"https://www.gstatic.com\" \"https://recaptcha.net\" \"https://challenges.cloudflare.com\" \"https://hcaptcha.com\")";
+more_set_headers "referrer-policy: same-origin";
+more_set_headers "report-to: {\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4\"}]}";
+more_set_headers "reporting-endpoints: cf-csp-endpoint=\"https://csp-reporting.cloudflare.com/cdn-cgi/script_monitor/report\"";
+more_set_headers "server-timing: cfCacheStatus;desc=\"DYNAMIC\", cfEdge;dur=3,cfOrigin;dur=10, cfExtPri";
+more_set_headers "speculation-rules: \"/cdn-cgi/speculation\"";
+more_set_headers "strict-transport-security: max-age=2592000; includeSubDomains; preload";
+more_set_headers "x-content-type-options: nosniff";
+more_set_headers "x-frame-options: SAMEORIGIN";
+more_set_headers "x-xss-protection: 1; mode=block";
+
+# Headers de camuflagem de hospedagem/cache de backend (Hostinger / LiteSpeed)
+more_set_headers "platform: hostinger";
+more_set_headers "panel: hpanel";
+more_set_headers "x-litespeed-cache: hit";
+more_set_headers "x-turbo-charged-by: LiteSpeed";
+
+proxy_http_version 1.1;
+proxy_buffering off;
+proxy_connect_timeout 60s;
+proxy_read_timeout 36000s;
+proxy_redirect off;
+
+proxy_pass_header Authorization;
+proxy_pass ${BACKEND};
+
+SET_REAL_IP_FROM
+real_ip_header ${REAL_IP_HEADER};
+real_ip_recursive ${REAL_IP_RECURSIVE};

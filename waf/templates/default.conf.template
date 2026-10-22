@@ -1,0 +1,141 @@
+# Nginx configuration for both HTTP and SSL with Advanced Edge Protection
+# (Rate Limiting, Anti-DoS, Anti-OOM, HTTP Method Filtering e Threat Intelligence Blocklist)
+
+server_tokens ${SERVER_TOKENS};
+
+more_set_headers 'Server: ${SERVER_HEADER}';
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+# ------------------------------------------------------------------------------
+# 1. Zonas de Rate Limiting (Proteção contra Brute Force e DoS / Scanners)
+# ------------------------------------------------------------------------------
+limit_req_zone $binary_remote_addr zone=waf_rate_limit:10m rate=25r/s;
+limit_conn_zone $binary_remote_addr zone=waf_conn_limit:10m;
+
+# ------------------------------------------------------------------------------
+# 2. Mapeamento de IPs Maliciosos (Threat Intelligence / StopForumSpam)
+# ------------------------------------------------------------------------------
+geo $bad_ip {
+    default 0;
+    include /etc/nginx/stopforumspam.txt;
+}
+
+server {
+    listen ${PORT} default_server;
+
+    server_name ${SERVER_NAME};
+    set $always_redirect ${NGINX_ALWAYS_TLS_REDIRECT};
+
+    PROXY_SSL_CONFIG
+
+    # Logs persistentes do WAF / Nginx
+    access_log /var/log/waf/access.log combined;
+    error_log /var/log/waf/error.log warn;
+
+    # --------------------------------------------------------------------------
+    # 3. Proteção Anti-OOM (Limitação Rígida de Buffers e Tamanho de Requisições)
+    # --------------------------------------------------------------------------
+    large_client_header_buffers 4 8k;
+    client_body_buffer_size 128k;
+    client_header_buffer_size 2k;
+    client_header_timeout 15s;
+    client_body_timeout 15s;
+
+    # --------------------------------------------------------------------------
+    # 4. Bloqueio Instantâneo de IPs da Blacklist de Ameaças
+    # --------------------------------------------------------------------------
+    if ($bad_ip) {
+        return 403;
+    }
+
+    # --------------------------------------------------------------------------
+    # 5. Bloqueio de Métodos HTTP Perigosos (Permitir apenas GET, POST, HEAD, OPTIONS)
+    # --------------------------------------------------------------------------
+    if ($request_method !~ ^(GET|POST|HEAD|OPTIONS)$) {
+        return 405;
+    }
+
+    # --------------------------------------------------------------------------
+    # 6. Aplicação de Rate Limiting e Conexões Simultâneas por IP
+    # --------------------------------------------------------------------------
+    limit_req zone=waf_rate_limit burst=40 nodelay;
+    limit_conn waf_conn_limit 30;
+    limit_req_status 429;
+
+    location / {
+        client_max_body_size 64M;
+
+        if ($always_redirect = on) {
+            return 301 https://$host$request_uri;
+        }
+
+        include includes/cors.conf;
+        include includes/proxy_backend.conf;
+
+        index index.html index.htm;
+        root /usr/share/nginx/html;
+    }
+
+    include includes/location_common.conf;
+}
+
+server {
+    listen ${SSL_PORT} ssl;
+    HTTP3_CONFIG
+
+    server_name ${SERVER_NAME};
+
+    ssl_certificate ${SSL_CERT_FILE};
+    ssl_certificate_key ${SSL_CERT_KEY_FILE};
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:MozSSL:10m;
+    ssl_session_tickets off;
+
+    ssl_dhparam /etc/ssl/certs/dhparam-${SSL_DH_BITS}.pem;
+
+    ssl_protocols ${SSL_PROTOCOLS};
+    ssl_ciphers ${SSL_CIPHERS};
+    ssl_prefer_server_ciphers ${SSL_PREFER_CIPHERS};
+
+    ssl_stapling ${SSL_OCSP_STAPLING};
+    ssl_stapling_verify ${SSL_OCSP_STAPLING};
+
+    ssl_verify_client ${SSL_VERIFY};
+    ssl_verify_depth ${SSL_VERIFY_DEPTH};
+
+    PROXY_SSL_CONFIG
+
+    large_client_header_buffers 4 8k;
+    client_body_buffer_size 128k;
+    client_header_buffer_size 2k;
+    client_header_timeout 15s;
+    client_body_timeout 15s;
+
+    if ($bad_ip) {
+        return 403;
+    }
+
+    if ($request_method !~ ^(GET|POST|HEAD|OPTIONS)$) {
+        return 405;
+    }
+
+    limit_req zone=waf_rate_limit burst=40 nodelay;
+    limit_conn waf_conn_limit 30;
+    limit_req_status 429;
+
+    location / {
+        client_max_body_size 64M;
+
+        include includes/cors.conf;
+        include includes/proxy_backend.conf;
+
+        index index.html index.htm;
+        root /usr/share/nginx/html;
+    }
+
+    include includes/location_common.conf;
+}

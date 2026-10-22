@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Alerta do Sistema - Utilização de Recursos</title>
+    <style type="text/css">
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        height: 100% !important;
+        background-color: #0b0f19;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: #f1f5f9;
+        -webkit-font-smoothing: antialiased;
+      }
+      .email-bg {
+        background-color: #0b0f19;
+        background-image: radial-gradient(at 50% 0%, #1e1b4b 0%, #0b0f19 75%);
+        padding: 40px 16px;
+      }
+      .card-shell {
+        max-width: 620px;
+        margin: 0 auto;
+        background-color: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+      .header-gradient {
+        background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #dc2626 100%);
+        padding: 34px 32px 28px;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .badge-pill {
+        display: inline-block;
+        padding: 5px 14px;
+        background-color: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: #fecaca;
+        margin-bottom: 12px;
+      }
+      .header-title {
+        margin: 0;
+        font-size: 23px;
+        font-weight: 800;
+        line-height: 1.25;
+        letter-spacing: -0.5px;
+        color: #ffffff;
+      }
+      .header-subtitle {
+        margin: 8px 0 0;
+        font-size: 13px;
+        color: #fca5a5;
+        font-weight: 500;
+      }
+      .content-body {
+        padding: 30px 32px 24px;
+      }
+      .domain-badge-box {
+        background-color: #182234;
+        border: 1px solid #283548;
+        border-radius: 12px;
+        padding: 14px 20px;
+        margin-bottom: 22px;
+        text-align: center;
+      }
+      .domain-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+      .domain-value {
+        font-size: 17px;
+        font-weight: 800;
+        color: #38bdf8;
+      }
+      .domain-value a {
+        color: #38bdf8;
+        text-decoration: none;
+      }
+      .lead-text {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #94a3b8;
+        margin: 0 0 20px;
+      }
+      .metric-row-card {
+        background-color: #182234;
+        border: 1px solid #283548;
+        border-radius: 12px;
+        padding: 14px 20px;
+        margin-bottom: 10px;
+      }
+      .metric-row-label {
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #94a3b8;
+        margin-bottom: 2px;
+      }
+      .metric-row-desc {
+        font-size: 12px;
+        color: #64748b;
+      }
+      .metric-row-val {
+        font-size: 24px;
+        font-weight: 900;
+        color: #f87171;
+        text-align: right;
+        text-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
+        white-space: nowrap;
+      }
+      .metric-target-box {
+        background-color: #111a2c;
+        border: 1px solid #1e293b;
+        border-radius: 10px;
+        padding: 12px 18px;
+        margin-bottom: 16px;
+      }
+      .metric-target-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+      .metric-target-val {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 15px;
+        font-weight: 700;
+        color: #38bdf8;
+        word-break: break-all;
+      }
+      .code-container {
+        margin-top: 22px;
+        background-color: #0a0f1d;
+        border: 1px solid #1e293b;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .code-header {
+        background-color: #0f172a;
+        padding: 10px 16px;
+        border-bottom: 1px solid #1e293b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: #94a3b8;
+      }
+      .code-body {
+        padding: 14px 16px;
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #7dd3fc;
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 250px;
+        overflow-y: auto;
+      }
+      .tip-card {
+        margin-top: 22px;
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid #334155;
+        border-left: 4px solid #38bdf8;
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .tip-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #e2e8f0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+      .tip-desc {
+        font-size: 12px;
+        line-height: 1.5;
+        color: #94a3b8;
+        margin: 0;
+      }
+      .tip-desc code {
+        background: #0f172a;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #38bdf8;
+        font-family: monospace;
+      }
+      .email-footer {
+        padding: 18px 32px 24px;
+        border-top: 1px solid #1f2937;
+        background-color: #0c1220;
+        text-align: center;
+      }
+      .footer-text {
+        font-size: 11px;
+        color: #64748b;
+        line-height: 1.6;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-bg">
+      <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="center">
+            <div class="card-shell">
+              
+              <!-- Gradient Header -->
+              <div class="header-gradient">
+                <span class="badge-pill">Telemetria &bull; Monitor de Infra</span>
+                <h1 class="header-title">{{ ALERT_TITLE }}</h1>
+                <p class="header-subtitle">Limite operacional configurado (70%) foi ultrapassado</p>
+              </div>
+
+              <!-- Main Content -->
+              <div class="content-body">
+
+                <!-- Domain Callout -->
+                <div class="domain-badge-box">
+                  <div class="domain-label">Ambiente / Domínio / URL</div>
+                  <div class="domain-value">
+                    <a href="https://{{ DOMAIN }}" target="_blank">https://{{ DOMAIN }}</a>
+                  </div>
+                </div>
+
+                <p class="lead-text">
+                  O sentinela identificou utilização elevada de recursos no cluster:
+                </p>
+
+                <!-- Recurso Alvo -->
+                <div class="metric-target-box">
+                  <div class="metric-target-label">Recurso / Alvo Afetado</div>
+                  <div class="metric-target-val">{{ TARGET_NAME }}</div>
+                </div>
+
+                <!-- Métricas Verticais (Uma embaixo da outra) -->
+                <!-- 1. CPU -->
+                <div class="metric-row-card">
+                  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="metric-row-label">Carga de Processador (CPU)</div>
+                        <div class="metric-row-desc">Utilização do núcleo de processamento</div>
+                      </td>
+                      <td style="vertical-align: middle; text-align: right; width: 140px;">
+                        <div class="metric-row-val">{{ CPU_PERCENT }}%</div>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <!-- 2. RAM -->
+                <div class="metric-row-card">
+                  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="metric-row-label">Memória RAM</div>
+                        <div class="metric-row-desc">{{ MEM_USAGE }}</div>
+                      </td>
+                      <td style="vertical-align: middle; text-align: right; width: 140px;">
+                        <div class="metric-row-val">{{ MEM_PERCENT }}%</div>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <!-- 3. Disco -->
+                <div class="metric-row-card">
+                  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="vertical-align: middle;">
+                        <div class="metric-row-label">Espaço em Disco (HD / Volumes)</div>
+                        <div class="metric-row-desc">{{ DISK_USAGE }}</div>
+                      </td>
+                      <td style="vertical-align: middle; text-align: right; width: 140px;">
+                        <div class="metric-row-val">{{ DISK_PERCENT }}%</div>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <!-- Code / Process / Details Terminal -->
+                <div class="code-container">
+                  <div class="code-header">
+                    {{ DETAILS_HEADER }}
+                  </div>
+                  <pre class="code-body">{{ DETAILS_INFO }}</pre>
+                </div>
+
+                <!-- Guidance Box -->
+                <div class="tip-card">
+                  <div class="tip-title">⚡ Ação Recomendada</div>
+                  <p class="tip-desc">{{ RECOMMENDATION_TEXT }}</p>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="email-footer">
+                <p class="footer-text">
+                  Enviado pelo <strong>Docker Health &amp; Telemetry Sentinel</strong>.<br />
+                  Servidor: <code>{{ DOMAIN }}</code> &bull; Cluster FrankenPHP 8.4
+                </p>
+              </div>
+
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

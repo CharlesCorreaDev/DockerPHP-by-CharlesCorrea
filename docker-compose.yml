@@ -1,0 +1,389 @@
+services:
+  # ==============================================================================
+  # TRAEFIK v2.11 - LOAD BALANCER & GATEWAY DE ENTRADA
+  # ==============================================================================
+  app_traefik_loadbalance:
+    image: traefik:v2.11
+    container_name: app_traefik_loadbalance
+    restart: unless-stopped
+    ports:
+      - "80:80"        # Porta HTTP principal
+      - "443:443"      # Porta HTTPS com terminacao TLS
+    volumes:
+      - ./load-balance/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./load-balance/dynamic.yml:/etc/traefik/dynamic/dynamic.yml:ro
+      - ./ssl/certs:/certs:ro
+      - ./ssl/certs/dynamic-tls.yml:/etc/traefik/dynamic/dynamic-tls.yml:ro
+      - ./ssl/letsencrypt:/letsencrypt
+      - ./load-balance/cache:/tmp/traefik-cache
+      - ./logs/traefik:/var/log/traefik
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # CLUSTER PHP 7.4 (Apache + WAF isolado)
+  # ==============================================================================
+  app_waf_php74:
+    image: owasp/modsecurity-crs:nginx
+    container_name: app_waf_php74
+    restart: unless-stopped
+    ports:
+      - "8074:8080"
+    environment:
+      - PORT=8080
+      - BACKEND=http://app_php74:80
+      - SERVER_NAME=localhost
+      - SERVER_HEADER=Microsoft-IIS/10.0
+      - PARANOIA=1
+      - BLOCKING_PARANOIA=1
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=4
+      - MODSEC_RULE_ENGINE=on
+      - MODSEC_REQ_BODY_ACCESS=on
+      - MODSEC_REQ_BODY_LIMIT=13107200
+      - MODSEC_REQ_BODY_NOFILES_LIMIT=131072
+      - MODSEC_RESP_BODY_ACCESS=on
+    volumes:
+      - ./waf/templates/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ./waf/templates/proxy_backend.conf.template:/etc/nginx/templates/includes/proxy_backend.conf.template:ro
+      - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
+      - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./waf/errors:/usr/share/nginx/html/errors:ro
+      - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
+      - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
+      - ./waf/scripts/report_spam.sh:/scripts/report_spam.sh:ro
+      - ./waf/docker/99-auto-update-cve-hook.sh:/docker-entrypoint.d/99-auto-update-cve-hook.sh:ro
+      - ./logs/waf:/var/log/waf
+    depends_on:
+      - app_php74
+    networks:
+      - cluster_network
+
+  app_php74:
+    build:
+      context: .
+      dockerfile: ./docker/php7.4/Dockerfile
+    container_name: app_php74
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ./Application:/var/www/html
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # CLUSTER PHP 8.2 (FrankenPHP Worker Mode + WAF isolado)
+  # ==============================================================================
+  app_waf_php82:
+    image: owasp/modsecurity-crs:nginx
+    container_name: app_waf_php82
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    environment:
+      - PORT=8080
+      - BACKEND=http://app_php82:80
+      - SERVER_NAME=localhost
+      - SERVER_HEADER=Microsoft-IIS/10.0
+      - PARANOIA=1
+      - BLOCKING_PARANOIA=1
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=4
+      - MODSEC_RULE_ENGINE=on
+      - MODSEC_REQ_BODY_ACCESS=on
+      - MODSEC_REQ_BODY_LIMIT=13107200
+      - MODSEC_REQ_BODY_NOFILES_LIMIT=131072
+      - MODSEC_RESP_BODY_ACCESS=on
+    volumes:
+      - ./waf/templates/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ./waf/templates/proxy_backend.conf.template:/etc/nginx/templates/includes/proxy_backend.conf.template:ro
+      - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
+      - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./waf/errors:/usr/share/nginx/html/errors:ro
+      - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
+      - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
+      - ./waf/scripts/report_spam.sh:/scripts/report_spam.sh:ro
+      - ./waf/docker/99-auto-update-cve-hook.sh:/docker-entrypoint.d/99-auto-update-cve-hook.sh:ro
+      - ./logs/waf:/var/log/waf
+    depends_on:
+      - app_php82
+    networks:
+      - cluster_network
+
+  app_php82:
+    build:
+      context: .
+      dockerfile: ./docker/php8.2/Dockerfile
+    container_name: app_php82
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ./Application:/var/www/html
+    environment:
+      - SERVER_NAME=:80
+      - SERVER_ROOT=/var/www/html
+      - FRANKENPHP_CONFIG=worker /var/www/html/frankenphp-worker.php 4
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # CLUSTER PHP 8.3 (FrankenPHP Worker Mode + WAF isolado)
+  # ==============================================================================
+  app_waf_php83:
+    image: owasp/modsecurity-crs:nginx
+    container_name: app_waf_php83
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+    environment:
+      - PORT=8080
+      - BACKEND=http://app_php83:80
+      - SERVER_NAME=localhost
+      - SERVER_HEADER=Microsoft-IIS/10.0
+      - PARANOIA=1
+      - BLOCKING_PARANOIA=1
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=4
+      - MODSEC_RULE_ENGINE=on
+      - MODSEC_REQ_BODY_ACCESS=on
+      - MODSEC_REQ_BODY_LIMIT=13107200
+      - MODSEC_REQ_BODY_NOFILES_LIMIT=131072
+      - MODSEC_RESP_BODY_ACCESS=on
+    volumes:
+      - ./waf/templates/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ./waf/templates/proxy_backend.conf.template:/etc/nginx/templates/includes/proxy_backend.conf.template:ro
+      - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
+      - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./waf/errors:/usr/share/nginx/html/errors:ro
+      - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
+      - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
+      - ./waf/scripts/report_spam.sh:/scripts/report_spam.sh:ro
+      - ./waf/docker/99-auto-update-cve-hook.sh:/docker-entrypoint.d/99-auto-update-cve-hook.sh:ro
+      - ./logs/waf:/var/log/waf
+    depends_on:
+      - app_php83
+    networks:
+      - cluster_network
+
+  app_php83:
+    build:
+      context: .
+      dockerfile: ./docker/php8.3/Dockerfile
+    container_name: app_php83
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ./Application:/var/www/html
+    environment:
+      - SERVER_NAME=:80
+      - SERVER_ROOT=/var/www/html
+      - FRANKENPHP_CONFIG=worker /var/www/html/frankenphp-worker.php 4
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # CLUSTER PHP 8.4 (FrankenPHP Worker Mode + WAF isolado)
+  # ==============================================================================
+  app_waf_php84:
+    image: owasp/modsecurity-crs:nginx
+    container_name: app_waf_php84
+    restart: unless-stopped
+    ports:
+      - "8084:8080"
+    environment:
+      - PORT=8080
+      - BACKEND=http://app_php84:80
+      - SERVER_NAME=localhost
+      - SERVER_HEADER=Microsoft-IIS/10.0
+      - PARANOIA=1
+      - BLOCKING_PARANOIA=1
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=4
+      - MODSEC_RULE_ENGINE=on
+      - MODSEC_REQ_BODY_ACCESS=on
+      - MODSEC_REQ_BODY_LIMIT=13107200
+      - MODSEC_REQ_BODY_NOFILES_LIMIT=131072
+      - MODSEC_RESP_BODY_ACCESS=on
+    volumes:
+      - ./waf/templates/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ./waf/templates/proxy_backend.conf.template:/etc/nginx/templates/includes/proxy_backend.conf.template:ro
+      - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
+      - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./waf/errors:/usr/share/nginx/html/errors:ro
+      - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
+      - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
+      - ./waf/scripts/report_spam.sh:/scripts/report_spam.sh:ro
+      - ./waf/docker/99-auto-update-cve-hook.sh:/docker-entrypoint.d/99-auto-update-cve-hook.sh:ro
+      - ./logs/waf:/var/log/waf
+    depends_on:
+      - app_php84
+    networks:
+      - cluster_network
+
+  app_php84:
+    build:
+      context: .
+      dockerfile: ./docker/php8.4/Dockerfile
+    container_name: app_php84
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ./Application:/var/www/html
+    environment:
+      - SERVER_NAME=:80
+      - SERVER_ROOT=/var/www/html
+      - FRANKENPHP_CONFIG=worker /var/www/html/frankenphp-worker.php 4
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # CLUSTER PHP 8.5 (FrankenPHP Worker Mode + WAF isolado)
+  # ==============================================================================
+  app_waf_php85:
+    image: owasp/modsecurity-crs:nginx
+    container_name: app_waf_php85
+    restart: unless-stopped
+    ports:
+      - "8085:8080"
+    environment:
+      - PORT=8080
+      - BACKEND=http://app_php85:80
+      - SERVER_NAME=localhost
+      - SERVER_HEADER=Microsoft-IIS/10.0
+      - PARANOIA=1
+      - BLOCKING_PARANOIA=1
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=4
+      - MODSEC_RULE_ENGINE=on
+      - MODSEC_REQ_BODY_ACCESS=on
+      - MODSEC_REQ_BODY_LIMIT=13107200
+      - MODSEC_REQ_BODY_NOFILES_LIMIT=131072
+      - MODSEC_RESP_BODY_ACCESS=on
+    volumes:
+      - ./waf/templates/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ./waf/templates/proxy_backend.conf.template:/etc/nginx/templates/includes/proxy_backend.conf.template:ro
+      - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
+      - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./waf/errors:/usr/share/nginx/html/errors:ro
+      - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
+      - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
+      - ./waf/scripts/report_spam.sh:/scripts/report_spam.sh:ro
+      - ./waf/docker/99-auto-update-cve-hook.sh:/docker-entrypoint.d/99-auto-update-cve-hook.sh:ro
+      - ./logs/waf:/var/log/waf
+    depends_on:
+      - app_php85
+    networks:
+      - cluster_network
+
+  app_php85:
+    build:
+      context: .
+      dockerfile: ./docker/php8.5/Dockerfile
+    container_name: app_php85
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ./Application:/var/www/html
+    environment:
+      - SERVER_NAME=:80
+      - SERVER_ROOT=/var/www/html
+      - FRANKENPHP_CONFIG=worker /var/www/html/frankenphp-worker.php 4
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # ANTIVIRUS CLAMAV (Daemon de Varredura Multithread)
+  # ==============================================================================
+  app_clamav:
+    image: clamav/clamav:latest
+    container_name: app_clamav
+    restart: unless-stopped
+    volumes:
+      - clamav_db:/var/lib/clamav
+      - ./logs/antivirus:/var/log/clamav
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # SENTINELA & MONITOR DE RECURSOS (Python Daemon + Docker API)
+  # ==============================================================================
+  app_monitor:
+    build:
+      context: ./sentinela
+      dockerfile: ./docker/Dockerfile
+    container_name: app_monitor
+    restart: unless-stopped
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_TO=${SMTP_TO}
+      - ALERT_CHANNEL_EMAIL=${ALERT_CHANNEL_EMAIL:-false}
+      - ALERT_CHANNEL_TELEGRAM=${ALERT_CHANNEL_TELEGRAM:-false}
+      - ALERT_CHANNEL_SMS=${ALERT_CHANNEL_SMS:-false}
+      - SMS_LEGAL_TOKEN=${SMS_LEGAL_TOKEN}
+      - SMS_LEGAL_TO=${SMS_LEGAL_TO}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - TELEGRAM_CHAT_IDS=${TELEGRAM_CHAT_IDS}
+      - CPU_THRESHOLD=${CPU_THRESHOLD:-70.0}
+      - MEM_THRESHOLD=${MEM_THRESHOLD:-70.0}
+      - DISK_THRESHOLD=${DISK_THRESHOLD:-70.0}
+      - CLAMAV_HOST=app_clamav
+      - CLAMAV_PORT=3310
+      - SCAN_DIR=/scandata
+      - QUARANTINE_DIR=/quarantine
+      - LOGS_DIR=/logs
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./Application:/scandata
+      - ./antivirus/quarentena:/quarantine
+      - ./logs:/logs
+      - ./ssl/certs:/certs:ro
+      - ./ssl/letsencrypt:/letsencrypt:ro
+    depends_on:
+      - app_clamav
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # CRONJOBS (Master-Cron Orquestrador de Tarefas Agendadas)
+  # ==============================================================================
+  app_cronjobs:
+    build:
+      context: ./Cronjobs
+      dockerfile: Dockerfile
+    container_name: app_cronjobs
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./Cronjobs/Jobs/tasks:/app/tasks:ro
+      - ./Cronjobs/Scripts:/app/scripts:ro
+      - ./logs:/logs
+    environment:
+      - CRON_TASKS_CONFIG=/app/tasks/tasks.json
+    networks:
+      - cluster_network
+
+networks:
+  cluster_network:
+    driver: bridge
+
+volumes:
+  clamav_db:

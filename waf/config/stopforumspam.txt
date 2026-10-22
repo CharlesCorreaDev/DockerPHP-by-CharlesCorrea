@@ -1,0 +1,8 @@
+# Arquivo inicial de lista de bloqueio de IPs maliciosos
+# Formato padrão Nginx geo: <IP_OU_CIDR> 1;
+# Atualizado automaticamente pelo script update_blocklist.sh
+
+# Exemplos de redes/IPs de atacantes bloqueados:
+185.220.101.0/24 1;
+194.26.29.0/24 1;
+45.154.255.0/24 1;

@@ -1,0 +1,59 @@
+services:
+  # Web Application Firewall (OWASP ModSecurity Core Rule Set + Nginx Proxy Reverso)
+  app_waf_php83:
+    image: owasp/modsecurity-crs:nginx
+    container_name: app_waf_php83
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+    environment:
+      - PORT=8080
+      - BACKEND=http://app_php83:80
+      - SERVER_NAME=localhost
+      - SERVER_HEADER=Microsoft-IIS/10.0
+      - PARANOIA=1
+      - BLOCKING_PARANOIA=1
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=4
+      - MODSEC_RULE_ENGINE=on
+      - MODSEC_REQ_BODY_ACCESS=on
+      - MODSEC_REQ_BODY_LIMIT=13107200
+      - MODSEC_REQ_BODY_NOFILES_LIMIT=131072
+      - MODSEC_RESP_BODY_ACCESS=on
+    volumes:
+      - ../../waf/templates/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ../../waf/templates/proxy_backend.conf.template:/etc/nginx/templates/includes/proxy_backend.conf.template:ro
+      - ../../waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
+      - ../../waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
+      - ../../waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ../../waf/errors:/usr/share/nginx/html/errors:ro
+      - ../../waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
+      - ../../waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
+      - ../../waf/scripts/report_spam.sh:/scripts/report_spam.sh:ro
+      - ../../waf/docker/99-auto-update-cve-hook.sh:/docker-entrypoint.d/99-auto-update-cve-hook.sh:ro
+    depends_on:
+      - app_php83
+    networks:
+      - php83_network
+
+  # Container PHP 8.3 FrankenPHP na rede interna
+  app_php83:
+    build:
+      context: ../..
+      dockerfile: ./docker/php8.3/Dockerfile
+    container_name: app_php83
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - ../../Application:/var/www/html
+    environment:
+      - SERVER_NAME=:80
+      - SERVER_ROOT=/var/www/html
+      - FRANKENPHP_CONFIG=worker /var/www/html/frankenphp-worker.php 4
+    networks:
+      - php83_network
+
+networks:
+  php83_network:
+    driver: bridge

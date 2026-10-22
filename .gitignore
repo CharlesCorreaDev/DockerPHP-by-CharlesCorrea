@@ -1,0 +1,39 @@
+# Arquivos de Ambiente e Credenciais Locais
+.env
+.env.local
+.env.*.local
+
+# Certificados SSL Locais e Chaves Privadas
+ssl/certs/*.pem
+ssl/certs/*.key
+ssl/certs/*.crt
+ssl/letsencrypt/acme.json
+
+# Logs do Sistema e Diagnóstico
+logs/
+logs/*
+logs/**/*.log
+logs/traefik/*
+logs/waf/*
+logs/antivirus/*
+logs/sentinela/*
+!logs/.gitkeep
+
+# Quarentena do Antivírus
+antivirus/quarentena/*
+!antivirus/quarentena/.gitkeep
+
+# Arquivos Temporários de Sistema Operacional e Editores
+.DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+*.tmp
+*.swp
+*~
+.idea/
+.vscode/
+
+# Dependências de Aplicação e Vendors (se houver no Application)
+Application/vendor/
+Application/composer.lock

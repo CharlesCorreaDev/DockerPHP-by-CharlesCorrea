@@ -22,6 +22,9 @@ O serviço `app_cronjobs` é um orquestrador conteinerizado autônomo baseado em
 3. **`honeypot-blocklist-reload` (a cada 1h)**:
    - Executa `/scripts/reload_waf_blocklist.sh` nos containers WAF.
    - Aplica os IPs capturados em tempo real pelos honeypots (IA Moqesh e Robots) na diretiva `geo $bad_ip` do Nginx com reload suave (`nginx -s reload`).
+4. **`ctir-gov-alert-check` (a cada 2h)**:
+   - Executa `python /app/ctir_gov_checker.py` no contêiner `app_monitor`.
+   - Monitora comunicados e alertas do portal oficial do CTIR Gov / GSI e dispara avisos imediatos por Telegram, E-mail e SMS sem duplicidade.
 
 ---
 

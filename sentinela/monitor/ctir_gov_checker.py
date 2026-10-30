@@ -274,3 +274,4 @@ if __name__ == '__main__':
     # Se passado --init ou --baseline, apenas cataloga os existentes
     mark_baseline = ('--init' in sys.argv or '--baseline' in sys.argv)
     check_ctir_gov_alerts(mark_initial_as_seen=mark_baseline)
+

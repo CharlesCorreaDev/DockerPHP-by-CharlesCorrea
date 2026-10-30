@@ -1,4 +1,4 @@
-﻿# 🛡️ Docker PHP Enterprise - Multi-Versão (7.4, 8.2, 8.3, 8.4, 8.5)
+# 🛡️ Docker PHP Enterprise - Multi-Versão (7.4, 8.2, 8.3, 8.4, 8.5)
 
 Cluster Docker de Alta Performance e Segurança Camuflada com suporte nativo a múltiplas versões do PHP, Load Balancer **Traefik v2.11**, WAF com **OWASP ModSecurity CRS**, **Honeypot para Agentes de IA (Moqesh)**, **Honeypot para Scanners/Robôs**, **FrankenPHP (Worker Mode)**, **Antivírus ClamAV** e **Monitor Sentinela** com telemetria e alertas em tempo real.
 
@@ -144,6 +144,13 @@ Cada camada possui seu próprio manual técnico detalhando arquitetura, variáve
      - **CVE-2026-46300 (Fragnesia)**: Bloqueio dos módulos IPsec `esp4`/`esp6` e drop de capabilities de rede (`cap_drop: ALL`).
      - **CVE-2026-31431 (Copy Fail)**: Desativação do módulo `algif_aead` e imposição da diretiva `no-new-privileges:true` em todos os containers PHP e Honeypots.
      - **CVE-2026-98432 (TCP UAF RCE)**: Desativação automática de Multipath TCP (`net.mptcp.enabled = 0`) no host via sysctl e terminação de conexões pelo Traefik na borda.
+     - **CVE-2026-53359 (Januscape)**: Isolamento de shadow MMU e mitigação de escape de hipervisores KVM.
+     - **DirtyClone & Pedit COW**: Prevenção ativa contra escalada de privilégios via Copy-on-Write com `security_opt: [no-new-privileges:true]`.
+
+6. **Radar Oficial de Cibersegurança Governamental (CTIR Gov)**:
+   - Integração com o Centro de Prevenção, Tratamento e Resposta a Incidentes Cibernéticos de Governo (`https://www.gov.br/gsi/pt-br/assuntos/ctir/alertas`).
+   - Monitoramento contínuo com deduplicação em `logs/sentinela/ctir_alerts_seen.json`.
+   - Disparo simultâneo e em tempo real via **Telegram Bot API**, **E-mail (SMTP/SES)** e **SMS Legal**.
 ---
 
 ## 🚀 Instalação Rápida e Gerenciador

@@ -151,13 +151,12 @@ http:
     # Dashboard do Moqesh (protegido pelo mesmo basic auth do load balancer)
     router-honeypot-ia-dashboard:
       entryPoints:
+        - web
         - websecure
       rule: "Host(`honeypot.localhost`)"
       priority: 1500
       service: service-honeypot-ia-dashboard
       tls: {}
-      middlewares:
-        - auth-loadbalance
 
   middlewares:
     # Cadeia global de middlewares de seguranÃ§a e otimizaÃ§Ã£o

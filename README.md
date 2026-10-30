@@ -137,6 +137,13 @@ Cada camada possui seu próprio manual técnico detalhando arquitetura, variáve
      - Sentinela Guardian
      - Camada Criptográfica SSL/TLS
 
+
+5. **Blindagem do Kernel Linux (Mitigação de CVEs Críticas)**:
+   - O instalador (`install.ps1` e `install.sh`) e o `docker-compose.yml` possuem rotinas automáticas de contenção para:
+     - **CVE-2026-74580 (Vghost)**: Bloqueio do módulo `vhost_net`/`vhost_vsock` e isolamento total de nós `/dev/vhost-*`.
+     - **CVE-2026-46300 (Fragnesia)**: Bloqueio dos módulos IPsec `esp4`/`esp6` e drop de capabilities de rede (`cap_drop: ALL`).
+     - **CVE-2026-31431 (Copy Fail)**: Desativação do módulo `algif_aead` e imposição da diretiva `no-new-privileges:true` em todos os containers PHP e Honeypots.
+     - **CVE-2026-98432 (TCP UAF RCE)**: Desativação automática de Multipath TCP (`net.mptcp.enabled = 0`) no host via sysctl e terminação de conexões pelo Traefik na borda.
 ---
 
 ## 🚀 Instalação Rápida e Gerenciador

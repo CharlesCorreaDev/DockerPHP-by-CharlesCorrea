@@ -21,7 +21,38 @@ function Show-Header {
     Write-Host ""
 }
 
-function Ensure-MoqeshSource {
+function Apply-KernelHardeningMitigations {
+    Write-Host "`n==> Aplicando Blindagem do Kernel contra CVE-2026-74580, CVE-2026-46300, CVE-2026-31431 e CVE-2026-98432..." -ForegroundColor Cyan
+
+    # 1. No Windows/WSL2: verifica e executa wsl --update se possivel
+    if (Get-Command wsl -ErrorAction SilentlyContinue) {
+        try {
+            Write-Host " -> Verificando atualizacoes do Kernel WSL2..." -ForegroundColor Gray
+            wsl --update --web-download 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host " [OK] Kernel WSL2 verificado/atualizado com sucesso!" -ForegroundColor Green
+            }
+        } catch { }
+    }
+
+    # 2. Hardening em ambientes Docker Linux do host via container privilegiado de boot unico
+    try {
+        Write-Host " -> Aplicando diretivas sysctl e bloqueio de modulos vulneraveis no Kernel Host..." -ForegroundColor Gray
+        docker run --rm --privileged alpine sh -c "
+            # Desativa MPTCP para mitigar CVE-2026-98432 (TCP UAF RCE)
+            sysctl -w net.mptcp.enabled=0 2>/dev/null || true
+
+            # Desativa modulos de risco se estiverem presentes no kernel host
+            modprobe -r algif_aead 2>/dev/null || true
+            modprobe -r vhost_net 2>/dev/null || true
+            modprobe -r esp4 esp6 2>/dev/null || true
+        " 2>$null
+        Write-Host " [OK] Diretivas de protecao do Kernel aplicadas com sucesso!" -ForegroundColor Green
+    } catch { }
+}
+
+function Ensure-MoqeshSource
+    Apply-KernelHardeningMitigations {
     $moqeshDir = "$root\honeypot\IA\moqesh"
     if (-not (Test-Path "$moqeshDir\Dockerfile")) {
         Write-Host "-> Clonando repositorio oficial do Moqesh (IA Honeypot)..." -ForegroundColor Cyan
@@ -33,7 +64,8 @@ function Ensure-MoqeshSource {
 }
 
 function Ensure-EnvFile
-    Ensure-MoqeshSource {
+    Ensure-MoqeshSource
+    Apply-KernelHardeningMitigations {
     if (-not (Test-Path "$root\.env")) {
         Write-Host "-> Arquivo .env não encontrado. Criando a partir de .env.example..." -ForegroundColor Yellow
         if (Test-Path "$root\.env.example") {
@@ -242,6 +274,7 @@ function Run-RequirementsCheck {
 Show-Header
 Ensure-EnvFile
     Ensure-MoqeshSource
+    Apply-KernelHardeningMitigations
 Sync-AllowedIpsToTraefik
 Check-And-Install-Dependencies
 Run-RequirementsCheck

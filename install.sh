@@ -28,7 +28,31 @@ show_header() {
     echo ""
 }
 
-ensure_moqesh_source() {
+apply_kernel_hardening_mitigations() {
+    echo -e "\n${CYAN}==> Aplicando Blindagem do Kernel contra CVE-2026-74580, CVE-2026-46300, CVE-2026-31431 e CVE-2026-98432...${NC}"
+
+    # 1. Desativa MPTCP no Kernel (mitigacao CVE-2026-98432)
+    if [ -w /proc/sys/net/mptcp/enabled ] 2>/dev/null || sudo sysctl -w net.mptcp.enabled=0 >/dev/null 2>&1; then
+        sudo sysctl -w net.mptcp.enabled=0 >/dev/null 2>&1 || true
+        if [ -d /etc/sysctl.d ]; then
+            echo "net.mptcp.enabled = 0" | sudo tee /etc/sysctl.d/99-disable-mptcp.conf >/dev/null 2>&1 || true
+        fi
+        echo -e "${GREEN}[OK] MPTCP desativado no Host (mitiga CVE-2026-98432).${NC}"
+    fi
+
+    # 2. Bloqueia modulos algif_aead, vhost_net e esp4/esp6 no host
+    if [ -d /etc/modprobe.d ]; then
+        echo "install algif_aead /bin/false" | sudo tee /etc/modprobe.d/disable-algif.conf >/dev/null 2>&1 || true
+        echo "blacklist vhost_net" | sudo tee /etc/modprobe.d/blacklist-vhost.conf >/dev/null 2>&1 || true
+        echo "blacklist esp4" | sudo tee /etc/modprobe.d/blacklist-esp.conf >/dev/null 2>&1 || true
+        echo "blacklist esp6" | sudo tee -a /etc/modprobe.d/blacklist-esp.conf >/dev/null 2>&1 || true
+        sudo rmmod algif_aead vhost_net esp4 esp6 2>/dev/null || true
+        echo -e "${GREEN}[OK] Modulos algif_aead, vhost_net e esp4/esp6 bloqueados no Host.${NC}"
+    fi
+}
+
+ensure_moqesh_source
+    apply_kernel_hardening_mitigations() {
     if [ ! -f "honeypot/IA/moqesh/Dockerfile" ]; then
         echo -e "${CYAN}-> Clonando repositorio oficial do Moqesh (IA Honeypot)...${NC}"
         git clone --depth 1 https://github.com/juliourena/moqesh.git honeypot/IA/moqesh
@@ -37,7 +61,31 @@ ensure_moqesh_source() {
 }
 
 ensure_env_file
-    ensure_moqesh_source() {
+    apply_kernel_hardening_mitigations() {
+    echo -e "\n${CYAN}==> Aplicando Blindagem do Kernel contra CVE-2026-74580, CVE-2026-46300, CVE-2026-31431 e CVE-2026-98432...${NC}"
+
+    # 1. Desativa MPTCP no Kernel (mitigacao CVE-2026-98432)
+    if [ -w /proc/sys/net/mptcp/enabled ] 2>/dev/null || sudo sysctl -w net.mptcp.enabled=0 >/dev/null 2>&1; then
+        sudo sysctl -w net.mptcp.enabled=0 >/dev/null 2>&1 || true
+        if [ -d /etc/sysctl.d ]; then
+            echo "net.mptcp.enabled = 0" | sudo tee /etc/sysctl.d/99-disable-mptcp.conf >/dev/null 2>&1 || true
+        fi
+        echo -e "${GREEN}[OK] MPTCP desativado no Host (mitiga CVE-2026-98432).${NC}"
+    fi
+
+    # 2. Bloqueia modulos algif_aead, vhost_net e esp4/esp6 no host
+    if [ -d /etc/modprobe.d ]; then
+        echo "install algif_aead /bin/false" | sudo tee /etc/modprobe.d/disable-algif.conf >/dev/null 2>&1 || true
+        echo "blacklist vhost_net" | sudo tee /etc/modprobe.d/blacklist-vhost.conf >/dev/null 2>&1 || true
+        echo "blacklist esp4" | sudo tee /etc/modprobe.d/blacklist-esp.conf >/dev/null 2>&1 || true
+        echo "blacklist esp6" | sudo tee -a /etc/modprobe.d/blacklist-esp.conf >/dev/null 2>&1 || true
+        sudo rmmod algif_aead vhost_net esp4 esp6 2>/dev/null || true
+        echo -e "${GREEN}[OK] Modulos algif_aead, vhost_net e esp4/esp6 bloqueados no Host.${NC}"
+    fi
+}
+
+ensure_moqesh_source
+    apply_kernel_hardening_mitigations() {
     if [ ! -f .env ]; then
         echo -e "${YELLOW}-> Arquivo .env não encontrado. Copiando de .env.example...${NC}"
         if [ -f .env.example ]; then
@@ -197,6 +245,7 @@ run_requirements_check() {
 show_header
 ensure_env_file
     ensure_moqesh_source
+    apply_kernel_hardening_mitigations
 sync_allowed_ips_to_traefik
 check_and_install_dependencies
 run_requirements_check

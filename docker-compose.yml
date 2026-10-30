@@ -69,6 +69,8 @@
       dockerfile: ./docker/php7.4/Dockerfile
     container_name: app_php74
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     expose:
       - "80"
     volumes:
@@ -126,6 +128,8 @@
       dockerfile: ./docker/php8.2/Dockerfile
     container_name: app_php82
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     expose:
       - "80"
     volumes:
@@ -185,6 +189,8 @@
       dockerfile: ./docker/php8.3/Dockerfile
     container_name: app_php83
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     expose:
       - "80"
     volumes:
@@ -244,6 +250,8 @@
       dockerfile: ./docker/php8.4/Dockerfile
     container_name: app_php84
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     expose:
       - "80"
     volumes:
@@ -303,6 +311,8 @@
       dockerfile: ./docker/php8.5/Dockerfile
     container_name: app_php85
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     expose:
       - "80"
     volumes:
@@ -437,6 +447,10 @@
       context: ./honeypot/IA/bridge
     container_name: app_honeypot_ia_bridge
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     expose:
       - "8090"
     environment:
@@ -459,6 +473,10 @@
       context: ./honeypot/Robots
     container_name: app_honeypot_robots
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     expose:
       - "8081"
     environment:

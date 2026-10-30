@@ -17,6 +17,11 @@ O Sentinela (`app_monitor`) é um serviço em segundo plano desenvolvido em Pyth
    - **E-mail**: Notificações HTML estilizadas via Amazon SES / SMTP seguro.
    - **SMS**: Disparo de SMS crítico para administradores via gateway SMS Legal.
 
+4. **Monitoramento Oficial de Cibersegurança (CTIR Gov)**:
+   - Consulta contínua à base de alertas do **GSI / CTIR Gov** (`https://www.gov.br/gsi/pt-br/assuntos/ctir/alertas`).
+   - Disparo imediato e deduplicado via **Telegram**, **E-mail** e **SMS Legal** a cada nova vulnerabilidade pública emitida.
+   - Persistência de baseline e histórico em `logs/sentinela/ctir_alerts_seen.json`.
+
 ---
 
 ## 📁 Estrutura de Arquivos
@@ -24,7 +29,7 @@ O Sentinela (`app_monitor`) é um serviço em segundo plano desenvolvido em Pyth
 ```text
 sentinela/
 ├── docker/          # Dockerfile com ambiente Python e dependências do Sentinela
-├── emails/          # Templates HTML para e-mails de alerta (antivírus, recursos, SSL)
-└── monitor/         # Código-fonte principal do daemon (monitor.py)
+├── emails/          # Templates HTML para e-mails de alerta (antivírus, recursos, SSL, cibersegurança)
+└── monitor/         # Código-fonte principal do daemon (monitor.py e ctir_gov_checker.py)
 ```
 

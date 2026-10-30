@@ -50,10 +50,11 @@ def run_master_scheduler():
 
                 if pattern and target_script:
                     try:
+                        cmd = target_script if target_script.startswith(('sh ', 'python ', 'bash ')) else f"sh {target_script}"
                         for c in client.containers.list():
                             if pattern in c.name.lower():
-                                print(f"  -> Executando '{target_script}' no contêiner {c.name}")
-                                res = c.exec_run(f"sh {target_script}")
+                                print(f"  -> Executando '{cmd}' no contêiner {c.name}")
+                                res = c.exec_run(cmd)
                                 print(f"  -> Resultado ({c.name}): exit_code={res.exit_code}")
                     except Exception as err:
                         print(f"[MASTER-CRON ERROR] Falha na execução da tarefa {task_id}: {err}")

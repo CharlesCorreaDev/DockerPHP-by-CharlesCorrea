@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends clamav clamav-d
 RUN pip install docker cryptography pyclamd
 
 COPY monitor/monitor.py /app/monitor.py
+COPY monitor/ctir_gov_checker.py /app/ctir_gov_checker.py
 COPY emails/*.html /app/
 
-CMD ["python", "monitor.py"]
+CMD ["python", "-u", "monitor.py"]

@@ -260,6 +260,21 @@ function Check-And-Install-Dependencies {
     } catch { }
 }
 
+function Check-CtirGovAlertsInitial {
+    Write-Host "-> Verificando alertas oficiais de ciberseguranca (CTIR Gov)..." -ForegroundColor Cyan
+    try {
+        $monitorRunning = docker ps --filter "name=app_monitor" --filter "status=running" --format "{{.Names}}" 2>$null
+        if ($monitorRunning) {
+            docker exec app_monitor python /app/ctir_gov_checker.py --baseline 2>$null
+            Write-Host " [OK] Monitoramento de alertas CTIR Gov verificado e ativo." -ForegroundColor Green
+        } else {
+            Write-Host " [i] O container 'app_monitor' monitorara continuamente novos alertas do CTIR Gov." -ForegroundColor Gray
+        }
+    } catch {
+        Write-Host " [AVISO] Nao foi possivel consultar alertas CTIR Gov no momento: $_" -ForegroundColor Yellow
+    }
+}
+
 function Run-RequirementsCheck {
     if (Test-Path "$root\_Install\check_requirements.ps1") {
         Write-Host "-> Validando requisitos de hardware e recursos do Docker..." -ForegroundColor Gray
@@ -278,6 +293,7 @@ Ensure-EnvFile
 Sync-AllowedIpsToTraefik
 Check-And-Install-Dependencies
 Run-RequirementsCheck
+Check-CtirGovAlertsInitial
 
 Write-Host "Escolha como deseja rodar o cluster Docker PHP (Porta 80 e 443 ativas no Traefik):" -ForegroundColor White
 Write-Host ""

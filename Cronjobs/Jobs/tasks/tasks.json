@@ -23,6 +23,14 @@
       "enabled": true,
       "target_script": "/scripts/reload_waf_blocklist.sh",
       "target_container_pattern": "waf"
+    },
+    {
+      "id": "ctir-gov-alert-check",
+      "name": "Verificação Periódica de Alertas de Cibersegurança do CTIR Gov",
+      "schedule_hours": 2,
+      "enabled": true,
+      "target_script": "python /app/ctir_gov_checker.py",
+      "target_container_pattern": "monitor"
     }
   ]
 }

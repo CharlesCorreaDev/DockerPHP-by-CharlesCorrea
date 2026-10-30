@@ -606,6 +606,7 @@ def monitor_loop():
     last_logs_purge = 0
     last_blocklist_update = time.time()
     last_spam_report = time.time()
+    last_ctir_check = 0
 
     while True:
         now = time.time()
@@ -728,6 +729,16 @@ def monitor_loop():
         if now - last_logs_purge >= 86400 or last_logs_purge == 0:
             purge_old_alert_logs()
             last_logs_purge = now
+
+        # 8. Monitoramento de Alertas Oficiais de Cibersegurança do CTIR Gov (A cada 2 horas: 7200s ou no boot)
+        if now - last_ctir_check >= 7200 or last_ctir_check == 0:
+            try:
+                import ctir_gov_checker
+                print("[CTIR GOV] Executando checagem periódica de novos alertas...")
+                ctir_gov_checker.check_ctir_gov_alerts(mark_initial_as_seen=False)
+            except Exception as e:
+                print(f"[CTIR GOV ERROR] Falha na checagem de alertas CTIR: {str(e)}")
+            last_ctir_check = now
 
         time.sleep(30)
 

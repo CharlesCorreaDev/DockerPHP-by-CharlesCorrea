@@ -35,3 +35,4 @@ docker/
 2. **Log Collector (`app_log_collector`)**:
    - Escuta em streaming contínuo a API do Docker Socket (`docker logs -f`).
    - Grava os outputs individuais em `logs/docker/<container_name>.log` com carimbo de data/hora no fuso de Brasília.
+

@@ -171,6 +171,7 @@ http:
           - mw-validate-headers
           - mw-cors-preflight
           - mw-security-headers
+          - mw-buffering
           - mw-cache
 
     # 1. Traefik Real IP
@@ -261,7 +262,7 @@ http:
             - regex: "(?i)PHP Version"
               replacement: "Enterprise PHP Runtime"
 
-    # 11. CabeÃ§alhos de SeguranÃ§a Nativos
+    # 11. Cabeçalhos de Segurança Nativos & Blindagem Avançada
     mw-security-headers:
       headers:
         frameDeny: false
@@ -269,10 +270,28 @@ http:
         contentTypeNosniff: true
         browserXssFilter: true
         sslRedirect: false
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: https://picsum.photos; connect-src 'self' wss: https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), vr=(), interest-cohort=()"
         customResponseHeaders:
           Server: "Microsoft-IIS/10.0"
           X-Powered-By: "ASP.NET"
+          X-Robots-Tag: "noindex, nofollow, noarchive, nosnippet"
+          Cross-Origin-Opener-Policy: "same-origin"
+          Cross-Origin-Embedder-Policy: "unsafe-none"
+          Cross-Origin-Resource-Policy: "same-origin"
 
+    # 11.1. Proteção contra DoS / Estouro de Payload
+    mw-buffering:
+      buffering:
+        maxRequestBodyBytes: 15728640 # 15 MB
+        memRequestBodyBytes: 2097152   # 2 MB
+        maxResponseBodyBytes: 15728640 # 15 MB
+        memResponseBodyBytes: 2097152  # 2 MB
+        retryExpression: "IsNetworkError() && Attempts() <= 2"
     # 12. Static Response - Healthcheck Ultra-leve (Sem passar por WAF/PHP)
     mw-static-healthz:
       plugin:

@@ -31,3 +31,4 @@ logs/
 - **Período de Retenção**: `60 dias` por padrão (customizável via `LOG_RETENTION_DAYS` no arquivo `.env`).
 - **Rotina de Purga**: O serviço Sentinela (`app_monitor`) executa diariamente uma varredura recursiva por todas as subpastas de `logs/`, expurgando arquivos cujo tempo de modificação seja superior à janela de retenção.
 - **Fuso Horário & Carimbos**: Todos os logs usam o fuso de Brasília (`America/Sao_Paulo`, UTC-03:00) em formato ISO ou legível brasileiro.
+

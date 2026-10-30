@@ -18,6 +18,7 @@ logs/waf/*
 logs/antivirus/*
 logs/sentinela/*
 !logs/.gitkeep
+!logs/README.md
 
 # Quarentena do Antivírus
 antivirus/quarentena/*

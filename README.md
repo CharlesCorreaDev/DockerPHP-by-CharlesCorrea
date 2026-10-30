@@ -96,9 +96,12 @@ Cada camada possui seu próprio manual técnico detalhando arquitetura, variáve
 | **Honeypots (IA & Bots)** | [`honeypot/`](honeypot/) | Moqesh (Token Exhaust para IA) e Honeypot de Scanners com Tarpit | [📖 Ler Manual](honeypot/README.md) |
 | **Aplicação & Worker** | [`Application/`](Application/) | FrankenPHP Worker Mode, roteamento dinâmico e detecção de ambiente | [📖 Ler Manual](Application/README.md) |
 | **Automação & Cronjobs** | [`Cronjobs/`](Cronjobs/) | Orquestrador Master-Cron Python para execução no Docker Socket | [📖 Ler Manual](Cronjobs/README.md) |
-| **Sentinela Guardian** | [`sentinela/`](sentinela/) | Monitoramento de recursos (> 70% CPU/RAM) e alertas Telegram/SMS | [📖 Ler Manual](sentinela/README.md) |
+| **Sentinela Guardian** | [`sentinela/`](sentinela/) | Monitoramento de recursos (> 70% CPU/RAM), radar CTIR Gov e alertas Telegram/SMS | [📖 Ler Manual](sentinela/README.md) |
 | **Antivírus & Quarentena** | [`antivirus/`](antivirus/) | ClamAV Daemon (:3310), freshclam e quarentena de ameaças | [📖 Ler Manual](antivirus/README.md) |
 | **Certificados SSL/TLS** | [`ssl/`](ssl/) | Geração local (mkcert/OpenSSL) e produção automática (Let's Encrypt) | [📖 Ler Manual](ssl/README.md) |
+| **Imagens Docker & PHP** | [`docker/`](docker/) | Contextos de build do PHP (7.4 a 8.5) e coletor de logs | [📖 Ler Manual](docker/README.md) |
+| **Auditoria & Logs** | [`logs/`](logs/) | Centralização de logs, expurgo de 60 dias e persistência de alertas | [📖 Ler Manual](logs/README.md) |
+| **Instalação & Requisitos** | [`_Install/`](_Install/) | Checagem de hardware/Docker e scripts utilitários | [📖 Ler Manual](_Install/INSTRUCOES.md) |
 
 ---
 

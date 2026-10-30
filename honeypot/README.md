@@ -1,4 +1,4 @@
-﻿# Honeypots
+# Honeypots
 
 Duas armadilhas independentes, roteadas pelo Traefik **antes** do WAF/PHP. Todo IP capturado vai para uma blocklist compartilhada que os WAFs carregam (`geo $bad_ip`) → bloqueio 403 no site inteiro.
 
@@ -23,7 +23,7 @@ honeypot/
 | Honeypot | Rotas (Traefik, prioridade 500) | Bloqueio |
 |---|---|---|
 | **IA** (`app_honeypot_ia`) | `/.env` `/.git` `/.aws` `/internal` `/backup` `/staging` `/api-internal` | Moqesh pontua o comportamento; score ≥ `MOQESH_AUTO_BLOCK_SCORE` ou reuso de honeytoken → webhook → `app_honeypot_ia_bridge` → blocklist |
-| **Robots** (`app_honeypot_robots`) | `/wp-login.php` `/wp-admin` `/xmlrpc.php` `/phpmyadmin` `/pma` `/adminer` `/vendor/phpunit` `/cgi-bin` shells `.php` `/robots-trap` … | `ROBOTS_BLOCK_THRESHOLD` acessos → blocklist. Tarpit prende o bot até 60s |
+| **Robots** (`app_honeypot_robots`) | `/wp-login.php` `/wp-admin` `/xmlrpc.php` `/phpmyadmin` `/pma` `/adminer` `/vendor/phpunit` `/cgi-bin` shells `.php` `/robots-trap` … | `ROBOTS_BLOCK_THRESHOLD` acessos → blocklist. Tarpit prende o bot até 60s. Redirecionamento punitivo para vídeo do Capitão Nascimento (`https://www.yout-ube.com/watch?v=TwIsz1BO3Dc`) se insistir (`hits >= 4`). |
 
 A blocklist é aplicada pela tarefa `honeypot-blocklist-reload` (Cronjobs, a cada 1h). Para aplicar na hora:
 

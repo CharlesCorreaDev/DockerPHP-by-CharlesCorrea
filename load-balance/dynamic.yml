@@ -114,6 +114,51 @@ http:
         - chain-security
         - strip-php85
 
+    # ==========================================================================
+    # HONEYPOTS (prioridade 500: acima do catch-all 100, abaixo do dashboard 1000)
+    # ==========================================================================
+    # IA (Moqesh): rotas "suculentas" que agentes de IA exploram (robots.txt/links ocultos)
+    router-honeypot-ia:
+      entryPoints:
+        - web
+        - websecure
+      rule: >-
+        PathPrefix(`/.env`) || PathPrefix(`/.git`) || PathPrefix(`/.aws`) ||
+        PathPrefix(`/internal`) || PathPrefix(`/backup`) || PathPrefix(`/staging`) ||
+        PathPrefix(`/api-internal`)
+      priority: 9000
+      service: service-honeypot-ia
+      middlewares:
+        - mw-real-ip
+
+    # Robots: caminhos classicos varridos por scanners/brute-force
+    router-honeypot-robots:
+      entryPoints:
+        - web
+        - websecure
+      rule: >-
+        PathPrefix(`/wp-login.php`) || PathPrefix(`/wp-admin`) || PathPrefix(`/xmlrpc.php`) ||
+        PathPrefix(`/phpmyadmin`) || PathPrefix(`/pma`) || PathPrefix(`/myadmin`) || PathPrefix(`/adminer`) ||
+        PathPrefix(`/vendor/phpunit`) || PathPrefix(`/cgi-bin`) || PathPrefix(`/boaform`) ||
+        PathPrefix(`/HNAP1`) || PathPrefix(`/actuator`) || PathPrefix(`/solr`) ||
+        Path(`/shell.php`) || Path(`/wso.php`) || Path(`/c99.php`) || Path(`/r57.php`) ||
+        Path(`/alfa.php`) || PathPrefix(`/robots-trap`)
+      priority: 9000
+      service: service-honeypot-robots
+      middlewares:
+        - mw-real-ip
+
+    # Dashboard do Moqesh (protegido pelo mesmo basic auth do load balancer)
+    router-honeypot-ia-dashboard:
+      entryPoints:
+        - websecure
+      rule: "Host(`honeypot.localhost`)"
+      priority: 1500
+      service: service-honeypot-ia-dashboard
+      tls: {}
+      middlewares:
+        - auth-loadbalance
+
   middlewares:
     # Cadeia global de middlewares de seguranÃ§a e otimizaÃ§Ã£o
     chain-security:
@@ -244,7 +289,7 @@ http:
       plugin:
         staticresponse:
           StatusCode: "503"
-          Body: "<!DOCTYPE html><html><head><title>Manutencao Programada</title><style>body{font-family:sans-serif;text-align:center;padding:50px;background:#1a1a1a;color:#fff;}</style></head><body><h1>ðŸ› ï¸ Servidor em Manutencao</h1><p>Estamos realizando melhorias programadas em nosso cluster. Retorne em breve.</p></body></html>"
+          Body: "<!DOCTYPE html><html><head><title>Manutencao Programada</title><style>body{font-family:sans-serif;text-align:center;padding:50px;background:#1a1a1a;color:#fff;}</style></head><body><h1>&#x1F6E1;&#xFE0F; Servidor em Manutencao</h1><p>Estamos realizando melhorias programadas em nosso cluster. Retorne em breve.</p></body></html>"
           Headers:
             Content-Type: "text/html; charset=utf-8"
             Retry-After: "300"
@@ -356,4 +401,19 @@ http:
       loadBalancer:
         servers:
           - url: "http://app_waf_php85:8080"
+    # Honeypots
+    service-honeypot-ia:
+      loadBalancer:
+        servers:
+          - url: "http://app_honeypot_ia:8080"
+
+    service-honeypot-ia-dashboard:
+      loadBalancer:
+        servers:
+          - url: "http://app_honeypot_ia:5000"
+
+    service-honeypot-robots:
+      loadBalancer:
+        servers:
+          - url: "http://app_honeypot_robots:8081"
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # ==============================================================================
 # Instalador & Gerenciador Interativo do Cluster Docker PHP (Linux & macOS)
 # Suporta: Ativação de versão única na porta 80 e 443 (7.4, 8.2, 8.3, 8.4, 8.5),
@@ -28,7 +28,16 @@ show_header() {
     echo ""
 }
 
-ensure_env_file() {
+ensure_moqesh_source() {
+    if [ ! -f "honeypot/IA/moqesh/Dockerfile" ]; then
+        echo -e "${CYAN}-> Clonando repositorio oficial do Moqesh (IA Honeypot)...${NC}"
+        git clone --depth 1 https://github.com/juliourena/moqesh.git honeypot/IA/moqesh
+        echo -e "${GREEN}[OK] Moqesh clonado com sucesso em honeypot/IA/moqesh.${NC}"
+    fi
+}
+
+ensure_env_file
+    ensure_moqesh_source() {
     if [ ! -f .env ]; then
         echo -e "${YELLOW}-> Arquivo .env não encontrado. Copiando de .env.example...${NC}"
         if [ -f .env.example ]; then
@@ -187,6 +196,7 @@ run_requirements_check() {
 
 show_header
 ensure_env_file
+    ensure_moqesh_source
 sync_allowed_ips_to_traefik
 check_and_install_dependencies
 run_requirements_check
@@ -218,7 +228,7 @@ case "$choice" in
         update_active_version_in_dynamic_yml "php74"
         update_env_var "PHP_ACTIVE_VERSION" "7.4"
         update_env_var "COMPOSE_PROJECT_NAME" "php74"
-        docker compose -p php74 up -d --build app_traefik_loadbalance app_waf_php74 app_php74
+        docker compose -p php74 up -d --build app_traefik_loadbalance app_waf_php74 app_php74 app_cronjobs app_log_collector app_honeypot_robots app_honeypot_ia_bridge app_honeypot_ia
         echo -e "\n${GREEN}[SUCESSO] PHP 7.4 ativo e respondendo na porta 80 e 443!${NC}"
         echo -e "${YELLOW} -> Gateway HTTP (Porta 80):  http://localhost/info.php${NC}"
         echo -e "${YELLOW} -> Gateway HTTPS (Porta 443): https://localhost/info.php${NC}"
@@ -229,7 +239,7 @@ case "$choice" in
         update_active_version_in_dynamic_yml "php82"
         update_env_var "PHP_ACTIVE_VERSION" "8.2"
         update_env_var "COMPOSE_PROJECT_NAME" "php82"
-        docker compose -p php82 up -d --build app_traefik_loadbalance app_waf_php82 app_php82
+        docker compose -p php82 up -d --build app_traefik_loadbalance app_waf_php82 app_php82 app_cronjobs app_log_collector app_honeypot_robots app_honeypot_ia_bridge app_honeypot_ia
         echo -e "\n${GREEN}[SUCESSO] PHP 8.2 ativo e respondendo na porta 80 e 443!${NC}"
         echo -e "${YELLOW} -> Gateway HTTP (Porta 80):  http://localhost/info.php${NC}"
         echo -e "${YELLOW} -> Gateway HTTPS (Porta 443): https://localhost/info.php${NC}"
@@ -240,7 +250,7 @@ case "$choice" in
         update_active_version_in_dynamic_yml "php83"
         update_env_var "PHP_ACTIVE_VERSION" "8.3"
         update_env_var "COMPOSE_PROJECT_NAME" "php83"
-        docker compose -p php83 up -d --build app_traefik_loadbalance app_waf_php83 app_php83
+        docker compose -p php83 up -d --build app_traefik_loadbalance app_waf_php83 app_php83 app_cronjobs app_log_collector app_honeypot_robots app_honeypot_ia_bridge app_honeypot_ia
         echo -e "\n${GREEN}[SUCESSO] PHP 8.3 ativo e respondendo na porta 80 e 443!${NC}"
         echo -e "${YELLOW} -> Gateway HTTP (Porta 80):  http://localhost/info.php${NC}"
         echo -e "${YELLOW} -> Gateway HTTPS (Porta 443): https://localhost/info.php${NC}"
@@ -251,7 +261,7 @@ case "$choice" in
         update_active_version_in_dynamic_yml "php84"
         update_env_var "PHP_ACTIVE_VERSION" "8.4"
         update_env_var "COMPOSE_PROJECT_NAME" "php84"
-        docker compose -p php84 up -d --build app_traefik_loadbalance app_waf_php84 app_php84
+        docker compose -p php84 up -d --build app_traefik_loadbalance app_waf_php84 app_php84 app_cronjobs app_log_collector app_honeypot_robots app_honeypot_ia_bridge app_honeypot_ia
         echo -e "\n${GREEN}[SUCESSO] PHP 8.4 ativo e respondendo na porta 80 e 443!${NC}"
         echo -e "${YELLOW} -> Gateway HTTP (Porta 80):  http://localhost/info.php${NC}"
         echo -e "${YELLOW} -> Gateway HTTPS (Porta 443): https://localhost/info.php${NC}"
@@ -262,7 +272,7 @@ case "$choice" in
         update_active_version_in_dynamic_yml "php85"
         update_env_var "PHP_ACTIVE_VERSION" "8.5"
         update_env_var "COMPOSE_PROJECT_NAME" "php85"
-        docker compose -p php85 up -d --build app_traefik_loadbalance app_waf_php85 app_php85
+        docker compose -p php85 up -d --build app_traefik_loadbalance app_waf_php85 app_php85 app_cronjobs app_log_collector app_honeypot_robots app_honeypot_ia_bridge app_honeypot_ia
         echo -e "\n${GREEN}[SUCESSO] PHP 8.5 ativo e respondendo na porta 80 e 443!${NC}"
         echo -e "${YELLOW} -> Gateway HTTP (Porta 80):  http://localhost/info.php${NC}"
         echo -e "${YELLOW} -> Gateway HTTPS (Porta 443): https://localhost/info.php${NC}"

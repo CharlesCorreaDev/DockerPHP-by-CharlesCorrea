@@ -1,4 +1,4 @@
-services:
+﻿services:
   # ==============================================================================
   # TRAEFIK v2.11 - LOAD BALANCER & GATEWAY DE ENTRADA
   # ==============================================================================
@@ -50,6 +50,8 @@ services:
       - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
       - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
       - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./honeypot/blocklist/honeypot_blocklist.txt:/etc/nginx/honeypot_blocklist.txt:ro
+      - ./honeypot/scripts/reload_waf_blocklist.sh:/scripts/reload_waf_blocklist.sh:ro
       - ./waf/errors:/usr/share/nginx/html/errors:ro
       - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
       - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
@@ -105,6 +107,8 @@ services:
       - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
       - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
       - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./honeypot/blocklist/honeypot_blocklist.txt:/etc/nginx/honeypot_blocklist.txt:ro
+      - ./honeypot/scripts/reload_waf_blocklist.sh:/scripts/reload_waf_blocklist.sh:ro
       - ./waf/errors:/usr/share/nginx/html/errors:ro
       - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
       - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
@@ -162,6 +166,8 @@ services:
       - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
       - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
       - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./honeypot/blocklist/honeypot_blocklist.txt:/etc/nginx/honeypot_blocklist.txt:ro
+      - ./honeypot/scripts/reload_waf_blocklist.sh:/scripts/reload_waf_blocklist.sh:ro
       - ./waf/errors:/usr/share/nginx/html/errors:ro
       - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
       - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
@@ -219,6 +225,8 @@ services:
       - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
       - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
       - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./honeypot/blocklist/honeypot_blocklist.txt:/etc/nginx/honeypot_blocklist.txt:ro
+      - ./honeypot/scripts/reload_waf_blocklist.sh:/scripts/reload_waf_blocklist.sh:ro
       - ./waf/errors:/usr/share/nginx/html/errors:ro
       - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
       - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
@@ -276,6 +284,8 @@ services:
       - ./waf/templates/location_common.conf.template:/etc/nginx/templates/includes/location_common.conf.template:ro
       - ./waf/config/modsecurity-override.conf:/etc/nginx/templates/modsecurity.d/modsecurity-override.conf.template:ro
       - ./waf/config/stopforumspam.txt:/etc/nginx/stopforumspam.txt:ro
+      - ./honeypot/blocklist/honeypot_blocklist.txt:/etc/nginx/honeypot_blocklist.txt:ro
+      - ./honeypot/scripts/reload_waf_blocklist.sh:/scripts/reload_waf_blocklist.sh:ro
       - ./waf/errors:/usr/share/nginx/html/errors:ro
       - ./waf/scripts/auto_update_cve.sh:/scripts/auto_update_cve.sh:ro
       - ./waf/scripts/update_blocklist.sh:/scripts/update_blocklist.sh:ro
@@ -381,9 +391,110 @@ services:
     networks:
       - cluster_network
 
+  # ==============================================================================
+  # HONEYPOT IA - Moqesh (labirinto Token Exhaust contra agentes de IA autonomos)
+  # Codigo/config em ./honeypot/IA
+  # ==============================================================================
+  app_honeypot_ia:
+    # Imagem do GHCR nao e publica -> build do fonte clonado em ./honeypot/IA/moqesh
+    # (git clone --depth 1 https://github.com/juliourena/moqesh.git honeypot/IA/moqesh)
+    build:
+      context: ./honeypot/IA/moqesh
+      dockerfile: ../Dockerfile.moqesh
+    image: moqesh:local
+    container_name: app_honeypot_ia
+    restart: unless-stopped
+    expose:
+      - "8080"   # honeypot (roteado pelo Traefik nas rotas-isca)
+      - "5000"   # dashboard (somente via Traefik com auth)
+    environment:
+      - TZ=America/Sao_Paulo
+      - LANG=pt_BR.UTF-8
+      - MOQESH_DB_PATH=/app/data/moqesh.db
+      - MOQESH_SEED=${MOQESH_SEED:-}
+      - MOQESH_GENERATION_MODE=Template
+      - MOQESH_SITE_PROFILE=${MOQESH_SITE_PROFILE:-corp}
+      - MOQESH_WORLD_ENABLED=false
+      - MOQESH_ADAPTIVE_TARPIT=true
+      - MOQESH_ENFORCE_BLOCK=true
+      - MOQESH_AUTO_BLOCK_SCORE=${MOQESH_AUTO_BLOCK_SCORE:-0.8}
+      - MOQESH_WEBHOOK_URL=http://app_honeypot_ia_bridge:8090/hook/moqesh
+      - MOQESH_WEBHOOK_SECRET=${MOQESH_WEBHOOK_SECRET:-}
+      - MOQESH_ADMIN_USER=${MOQESH_ADMIN_USER:-admin}
+      - MOQESH_ADMIN_PASSWORD=${MOQESH_ADMIN_PASSWORD:-}
+      - MOQESH_COOKIE_SECURE=true
+    volumes:
+      - moqesh_data:/app/data
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    networks:
+      - cluster_network
+
+  # Ponte webhook Moqesh -> blocklist dos WAFs
+  app_honeypot_ia_bridge:
+    build:
+      context: ./honeypot/IA/bridge
+    container_name: app_honeypot_ia_bridge
+    restart: unless-stopped
+    expose:
+      - "8090"
+    environment:
+      - TZ=America/Sao_Paulo
+      - LANG=pt_BR.UTF-8
+      - MOQESH_WEBHOOK_SECRET=${MOQESH_WEBHOOK_SECRET:-}
+      - HONEYPOT_WHITELIST=${HONEYPOT_WHITELIST:-127.0.0.1/32}
+    volumes:
+      - ./honeypot/blocklist:/blocklist
+      - ./logs/docker/honeypot:/logs
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # HONEYPOT ROBOTS - scanners, brute-force, exploit kits (tarpit + blocklist)
+  # Codigo em ./honeypot/Robots
+  # ==============================================================================
+  app_honeypot_robots:
+    build:
+      context: ./honeypot/Robots
+    container_name: app_honeypot_robots
+    restart: unless-stopped
+    expose:
+      - "8081"
+    environment:
+      - TZ=America/Sao_Paulo
+      - LANG=pt_BR.UTF-8
+      - ROBOTS_BLOCK_THRESHOLD=${ROBOTS_BLOCK_THRESHOLD:-2}
+      - HONEYPOT_WHITELIST=${HONEYPOT_WHITELIST:-127.0.0.1/32}
+    volumes:
+      - ./honeypot/blocklist:/blocklist
+      - ./logs/docker/honeypot:/logs
+    networks:
+      - cluster_network
+
+  # ==============================================================================
+  # COLETOR DE LOGS DOCKER (stdout/stderr de cada container -> ./logs/docker)
+  # ==============================================================================
+  app_log_collector:
+    image: docker:cli
+    container_name: app_log_collector
+    restart: unless-stopped
+    entrypoint: ["sh", "/collect.sh"]
+    environment:
+      - TZ=America/Sao_Paulo
+      - LANG=pt_BR.UTF-8
+      - LOG_PROJECT=${COMPOSE_PROJECT_NAME:-php83}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/log-collector/collect.sh:/collect.sh:ro
+      - ./logs/docker:/logs
+    networks:
+      - cluster_network
+
 networks:
   cluster_network:
     driver: bridge
 
 volumes:
+  moqesh_data:
   clamav_db:

@@ -1,0 +1,15 @@
+# ==============================================================================
+# Iscas para agentes de IA - mesclar no robots.txt REAL da aplicacao
+# (Application/robots.txt). Crawlers/agentes de IA leem o robots.txt e tendem a
+# visitar justamente o que esta em "Disallow". Humanos e buscadores legitimos
+# respeitam o Disallow e nunca chegam la.
+# ==============================================================================
+User-agent: *
+Disallow: /internal/
+Disallow: /backup/
+Disallow: /.env
+Disallow: /.git/
+Disallow: /staging/
+Disallow: /api-internal/
+Disallow: /robots-trap/
+

@@ -1,0 +1,6 @@
+# Blocklist gerada automaticamente pelos honeypots (IA + Robots).
+# Formato: diretiva "geo" do Nginx -> "IP 1;". Carregada pelos WAFs em geo $bad_ip.
+# Para desbloquear um IP, remova as linhas dele e rode o reload do WAF.
+
+# robots 2026-10-30T10:27:10-03:00 wp_login sensitive_files /wp-login.php
+172.20.0.1 1;

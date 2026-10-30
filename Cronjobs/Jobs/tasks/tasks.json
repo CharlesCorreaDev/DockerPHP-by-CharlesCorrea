@@ -15,6 +15,14 @@
       "enabled": true,
       "target_script": "/scripts/report_spam.sh",
       "target_container_pattern": "waf"
+    },
+    {
+      "id": "honeypot-blocklist-reload",
+      "name": "Aplicar IPs capturados pelos Honeypots IA/Robots nos WAFs",
+      "schedule_hours": 1,
+      "enabled": true,
+      "target_script": "/scripts/reload_waf_blocklist.sh",
+      "target_container_pattern": "waf"
     }
   ]
 }

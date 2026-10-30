@@ -37,3 +37,8 @@ desktop.ini
 # Dependências de Aplicação e Vendors (se houver no Application)
 Application/vendor/
 Application/composer.lock
+
+# Codigo-fonte do Moqesh (clonado por install / build local)
+honeypot/IA/moqesh/
+logs/docker/*
+

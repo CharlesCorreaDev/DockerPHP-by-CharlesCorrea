@@ -22,6 +22,7 @@ limit_conn_zone $binary_remote_addr zone=waf_conn_limit:10m;
 geo $bad_ip {
     default 0;
     include /etc/nginx/stopforumspam.txt;
+    include /etc/nginx/honeypot_blocklist.txt;   # IPs capturados pelos honeypots (IA + Robots)
 }
 
 server {

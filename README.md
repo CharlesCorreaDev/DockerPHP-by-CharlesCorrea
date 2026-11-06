@@ -136,9 +136,10 @@ Cada camada possui manual técnico dedicado com arquitetura, variáveis e comand
 ### 4. WAF OWASP ModSecurity CRS e Nginx
 - Inspeção profunda de corpo e resposta contra ataques do OWASP Top 10.
 - Bloqueio imediato de IPs listados em `geo $bad_ip` (alimentado pelos honeypots e listas de reputação).
-- **Combate a vulnerabilidades críticas de mercado (HTTP2Shell e php2shell)**:
-  - **HTTP2Shell (CVE-2026-111497)**: Mitigação contra corrupção de memória e buffer overflow por pacotes compactados anômalos através do middleware `mw-buffering` no Traefik (limitando payloads e alocação de memória) e sanitização rigorosa de cabeçalhos.
+- **Combate a vulnerabilidades críticas de mercado (HTTP2Shell, php2shell, Composer e Python)**:
+  - **HTTP2Shell e Python2Shell (CVE-2026-111497)**: Mitigação contra corrupção de memória e buffer overflow por pacotes compactados anômalos através do middleware `mw-buffering` no Traefik (limitando payloads e alocação de memória) e sanitização rigorosa de cabeçalhos. Os serviços internos em Python (`app_cronjobs`, `app_monitor`, `app_log_collector` e `app_honeypot_ia_bridge`) não utilizam bibliotecas vulneráveis de Brotli e rodam isolados na rede interna, sem exposição externa direta.
   - **php2shell (CVE-2026-109618 e CVE-2026-109619)**: Regras virtuais dedicadas em `waf/config/php2shell-mitigation.conf` bloqueando tentativas de sobrescrever diretivas de runtime do PHP (`allow_url_include`, `auto_prepend_file`, `disable_functions`, etc.) e injeção de parâmetros de CLI (`-d memory_limit`).
+  - **Composer (CVE-2026-40176, CVE-2026-84361 e Path Traversal)**: Imagens configuradas com versões modernas do Composer 2 (`2.8+`), saneando vetores de injeção de comandos em parâmetros de repositórios VCS e escape de diretório fora da pasta `vendor/`. A execução ocorre sob usuário restrito com flag `security_opt: [no-new-privileges:true]`, impedindo a manipulação de arquivos do sistema.
 
 ### 5. Auditoria de serviços em tempo real (`info.php`)
 Painel integrado em `http://localhost/info.php` que checa o status de operação dos 8 serviços da infraestrutura:

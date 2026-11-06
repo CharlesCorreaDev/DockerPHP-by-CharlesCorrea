@@ -1,66 +1,67 @@
-# Honeypots
+# Camada de detecção ativa por honeypots
 
-Duas armadilhas independentes, roteadas pelo Traefik **antes** do WAF/PHP. Todo IP capturado vai para uma blocklist compartilhada que os WAFs carregam (`geo $bad_ip`) → bloqueio 403 no site inteiro.
+Esta camada reúne duas armadilhas de segurança complementares, roteadas pelo Traefik antes da chegada das requisições ao WAF ou aos contêineres PHP da aplicação. Todos os endereços IP capturados são gravados em uma blocklist compartilhada (`geo $bad_ip`) que os servidores Nginx carregam para bloqueio imediato com código HTTP 403 em todo o site.
 
-> Fuso horário: **America/Sao_Paulo** · idioma **pt-BR** em todos os containers e logs.
+Os serviços operam no fuso horário oficial de Brasília (`America/Sao_Paulo`) e contam com interface em português do Brasil (pt-BR).
 
-```
+## Repositórios e documentação oficial
+
+* [Repositório oficial do Moqesh AI Honeypot (juliourena/moqesh)](https://github.com/juliourena/moqesh)
+* [Documentação do módulo HTTP Geo do Nginx](https://nginx.org/en/docs/http/ngx_http_geo_module.html)
+* [Conceitos de Honeytokens e Deception Technology (OWASP)](https://owasp.org/)
+* [Guia de mitigação de automação maliciosa (OWASP Automated Threats to Web Applications)](https://owasp.org/www-project-automated-threats-to-web-applications/)
+
+## O que cada componente faz
+
+### 1. Honeypot para agentes de IA autônomos (`app_honeypot_ia`)
+* **Objetivo**: Identificar bots modernos equipados com LLM, scanners automatizados de vulnerabilidades e crawlers que exploram rotas conceituais e arquivos sensíveis.
+* **Rotas monitoradas pelo Traefik**: Endereços como `/.env`, `/.git`, `/.aws`, `/internal`, `/backup`, `/staging` e `/api-internal`.
+* **Análise comportamental**: O Moqesh avalia intervalos de requisição, navegação estruturada e consumo de honeytokens. Quando o índice de suspeita atinge o limiar configurado (`MOQESH_AUTO_BLOCK_SCORE`), o sistema dispara um webhook assinado para o serviço bridge.
+* **Interface do painel**: O dashboard do Moqesh foi traduzido para pt-BR e fica acessível em `https://honeypot.localhost/` com autenticação local administrativa.
+
+### 2. Ponte de integração (`app_honeypot_ia_bridge`)
+* **Mecanismo**: Microsserviço em Python que escuta webhooks gerados pelo Moqesh via socket interno.
+* **Validação de assinatura**: Valida a chave HMAC recebida no cabeçalho contra a variável `MOQESH_WEBHOOK_SECRET` do arquivo `.env`.
+* **Inclusão na blocklist**: Insere o endereço IP agressor no arquivo `blocklist/honeypot_blocklist.txt` respeitando a lista de exceções (`HONEYPOT_WHITELIST`).
+
+### 3. Honeypot para scanners e bots tradicionais (`app_honeypot_robots`)
+* **Objetivo**: Capturar scanners de CMS, ferramentas de força bruta e kits de exploração automatizados.
+* **Rotas monitoradas**: Caminhos como `/wp-login.php`, `/wp-admin`, `/xmlrpc.php`, `/phpmyadmin`, `/pma`, `/adminer`, `/vendor/phpunit`, `/cgi-bin`, arquivos de shell (`.php`) e rotas isca como `/robots-trap`.
+* **Mecanismo Tarpit**: Prende a conexão do bot enviando bytes lentamente para consumir os sockets e a memória do cliente invasor.
+* **Limite de infrações**: Após atingir o número máximo de acessos suspeitos (`ROBOTS_BLOCK_THRESHOLD`), o IP entra para a blocklist do cluster. Em acessos reincidentes (`hits >= 4`), o serviço redireciona o tráfego para resposta externa educativa.
+
+### 4. Integração de iscas no código da aplicação (`lures/`)
+* **`IA/lures/robots.txt`**: Define caminhos proibidos direcionados aos honeypots para induzir bots rastreadores à violação de rotas.
+* **`IA/lures/honeypot-lures.php`**: Injeta links HTML com estilo de exibição oculto para visitantes humanos, mas visíveis no DOM para spiders de extração.
+* **`Robots/php/HoneypotField.php`**: Adiciona campos invisíveis em formulários de contato e login; robôs que preenchem esses campos são classificados como atacantes.
+
+## Estrutura do diretório
+
+```text
 honeypot/
-├── IA/                      # Agentes de IA autônomos (LLM pentest/crawlers)
-│   ├── moqesh/              # fonte oficial clonado (gitignored) - juliourena/moqesh
-│   ├── Dockerfile.moqesh    # build adaptado (fix LICENSE + TZ/pt-BR)
-│   ├── bridge/              # webhook Moqesh -> blocklist dos WAFs
-│   └── lures/               # iscas: robots.txt + links invisíveis (PHP)
-├── Robots/                  # Scanners, brute-force, exploit kits
-│   ├── robots_honeypot.py   # iscas WP/phpMyAdmin/xmlrpc + tarpit
-│   └── php/HoneypotField.php# campo honeypot para formulários
-├── blocklist/honeypot_blocklist.txt   # "IP 1;" (geo do Nginx)
-└── scripts/reload_waf_blocklist.sh    # reload do WAF (cron de 1h)
+├── IA/                      # Armadilha focada em agentes e modelos de linguagem
+│   ├── moqesh/              # Repositório clonado e customizado com tradução pt-BR
+│   ├── Dockerfile.moqesh    # Build customizado com fuso horário e localização
+│   ├── bridge/              # Serviço receptor de webhooks e manipulador de regras
+│   └── lures/               # Iscas sintéticas para inclusão em robots.txt e layouts
+├── Robots/                  # Armadilha para bots convencionais e scanners de portas
+│   ├── robots_honeypot.py   # Script do servidor tarpit e emulação de endpoints
+│   └── php/HoneypotField.php# Helper de inclusão de campos em formulários PHP
+├── blocklist/
+│   └── honeypot_blocklist.txt # Lista de endereços no formato "IP 1;" para o Nginx
+└── scripts/
+    └── reload_waf_blocklist.sh# Script de recarga suave nas instâncias do WAF
 ```
 
-## Fluxo
+## Operação e desbloqueio de endereços
 
-| Honeypot | Rotas (Traefik, prioridade 500) | Bloqueio |
-|---|---|---|
-| **IA** (`app_honeypot_ia`) | `/.env` `/.git` `/.aws` `/internal` `/backup` `/staging` `/api-internal` | Moqesh pontua o comportamento; score ≥ `MOQESH_AUTO_BLOCK_SCORE` ou reuso de honeytoken → webhook → `app_honeypot_ia_bridge` → blocklist |
-| **Robots** (`app_honeypot_robots`) | `/wp-login.php` `/wp-admin` `/xmlrpc.php` `/phpmyadmin` `/pma` `/adminer` `/vendor/phpunit` `/cgi-bin` shells `.php` `/robots-trap` … | `ROBOTS_BLOCK_THRESHOLD` acessos → blocklist. Tarpit prende o bot até 60s. Redirecionamento punitivo para vídeo do Capitão Nascimento (`https://www.yout-ube.com/watch?v=TwIsz1BO3Dc`) se insistir (`hits >= 4`). |
-
-A blocklist é aplicada pela tarefa `honeypot-blocklist-reload` (Cronjobs, a cada 1h). Para aplicar na hora:
-
+Para forçar a recarga imediata da lista de bloqueio nos WAFs sem aguardar o agendador:
 ```bash
 docker exec app_waf_php83 sh /scripts/reload_waf_blocklist.sh
 ```
 
-## Primeira instalação
-
-```bash
-git clone --depth 1 https://github.com/juliourena/moqesh.git honeypot/IA/moqesh
-docker compose up -d --build app_honeypot_ia app_honeypot_ia_bridge app_honeypot_robots
-```
-
-Variáveis no `.env`: `MOQESH_WEBHOOK_SECRET`, `MOQESH_ADMIN_PASSWORD`, `MOQESH_AUTO_BLOCK_SCORE`, `ROBOTS_BLOCK_THRESHOLD`, `HONEYPOT_WHITELIST`.
-
-No Linux, permita escrita na blocklist pelos containers (uid 10001):
-`chown -R 10001 honeypot/blocklist logs/docker/honeypot`
-
-## Iscas na aplicação
-
-1. Mescle `IA/lures/robots.txt` no `Application/robots.txt`.
-2. Inclua `IA/lures/honeypot-lures.php` no rodapé do layout (links invisíveis).
-3. Formulários: use `Robots/php/HoneypotField.php`.
-
-## Dashboard do Moqesh
-
-`https://honeypot.localhost` (basic auth do load balancer + login do Moqesh).
-
-## Logs
-
-- `logs/docker/honeypot/robots.log` e `ia-bridge.log` — eventos JSON (data/hora de Brasília)
-- `logs/docker/<container>.log` — stdout/stderr de todos os containers (`app_log_collector`)
-
-## Desbloquear um IP
-
-Remova a linha do IP em `blocklist/honeypot_blocklist.txt` e rode o reload do WAF.
-
-> ⚠️ `HONEYPOT_WHITELIST` deve conter seus IPs administrativos. Moqesh é **AGPL-3.0**: modificar o fonte e expor em rede exige publicar o código.
-
+Para remover o bloqueio de um endereço capturado por engano:
+1. Abra o arquivo `honeypot/blocklist/honeypot_blocklist.txt`.
+2. Remova a linha correspondente ao endereço IP.
+3. Execute o comando de recarga do WAF acima.
+4. Caso o IP seja fixo e administrativo, adicione sua máscara na variável `HONEYPOT_WHITELIST` no arquivo `.env`.

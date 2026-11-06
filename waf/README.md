@@ -1,33 +1,59 @@
-# 🧱 Camada WAF & Firewall de Aplicação (OWASP ModSecurity CRS + Nginx)
+# Camada WAF e firewall de aplicação (OWASP ModSecurity CRS e Nginx)
 
-Esta camada atua como a **muralha de inspeção profunda de pacotes HTTP/HTTPS**, mitigando ataques web do OWASP Top 10 antes que a requisição seja entregue aos interpretadores PHP.
+Esta camada realiza a inspeção profunda de pacotes nas requisições HTTP e HTTPS direcionadas à aplicação. Ela atua posicionada entre o balanceador Traefik e os servidores FrankenPHP/Apache, filtrando ameaças catalogadas no OWASP Top 10 antes que alcancem o interpretador PHP.
 
----
+## Repositórios e documentação oficial
 
-## 🛡️ Funcionalidades e Mecanismos Defensivos
+* [Repositório oficial do OWASP Core Rule Set (coreruleset/coreruleset)](https://github.com/coreruleset/coreruleset)
+* [Documentação oficial do OWASP ModSecurity Core Rule Set](https://coreruleset.org/docs/)
+* [Repositório oficial da imagem Docker OWASP CRS (coreruleset/modsecurity-crs-docker)](https://github.com/coreruleset/modsecurity-crs-docker)
+* [Repositório oficial do ModSecurity (owasp-modsecurity/ModSecurity)](https://github.com/owasp-modsecurity/ModSecurity)
+* [Documentação de módulos do servidor Nginx](https://nginx.org/en/docs/)
+* [OWASP Top 10 Web Application Security Risks](https://owasp.org/www-project-top-ten/)
 
-1. **OWASP Core Rule Set (CRS) v3 / ModSecurity**:
-   - Inspeção rigorosa de corpo (`REQ_BODY_ACCESS=on`) e resposta (`RESP_BODY_ACCESS=on`).
-   - Bloqueio imediato de **SQL Injection**, **Cross-Site Scripting (XSS)**, **Remote Code Execution (RCE)** e **PHP Object Injection**.
-2. **Mitigação Virtual de Vulnerabilidades**:
-   - Regras virtuais de bloqueio imediato contra explorações `CVE-2026-109618` e `CVE-2026-109619`.
-3. **Mapeamento de Ameaças em Tempo Real (`geo $bad_ip`)**:
-   - Carrega `stopforumspam.txt` e a blocklist consolidada `honeypot_blocklist.txt` (alimentada pelas capturas dos Honeypots).
-   - Invasores identificados recebem `HTTP 403 Forbidden` instantâneo sem onerar o PHP.
-4. **Camuflagem Microsoft-IIS/10.0 & Cloudflare**:
-   - Responde com headers idênticos ao IIS (`Server: Microsoft-IIS/10.0`, `X-Powered-By: ASP.NET`) e headers Cloudflare (`cf-ray`, `cf-cache-status`), desorientando scanners automatizados.
-5. **Gzip Decompression Bomb & Buraco Negro (Loop 301)**:
-   - Scanners buscando extensões críticas (`.sql`, `.bak`, `.conf`) caem em loop de redirecionamento ou recebem arquivo de descompressão massiva.
+## O que cada componente faz
 
----
+### 1. Mecanismo de inspeção ModSecurity CRS
+* **Análise de entrada e saída**: Inspeciona cabeçalhos, parâmetros de URL, cookies e o corpo da requisição (`MODSEC_REQ_BODY_ACCESS=on`) e resposta (`MODSEC_RESP_BODY_ACCESS=on`).
+* **Proteção contra classes de vulnerabilidade**: Bloqueia tentativas de exploração de SQL Injection (SQLi), Cross-Site Scripting (XSS), Remote Code Execution (RCE), Injeção de Comandos de Sistema, Local/Remote File Inclusion (LFI/RFI) e PHP Object Injection.
+* **Modelo de pontuação de anomalia (Anomaly Scoring)**: Regras associam pontos às requisições com base na severidade da inconformidade; se a pontuação acumulada ultrapassar o limiar de entrada (`ANOMALY_INBOUND=5`), a conexão é descartada com código HTTP 403.
+* **Regras de mitigação virtual**: Contém assinaturas específicas para neutralização de tentativas de exploração das vulnerabilidades CVE-2026-109618 e CVE-2026-109619.
 
-## 📁 Estrutura de Arquivos
+### 2. Bloqueio por reputação de endereço (`geo $bad_ip`)
+* **Consolidação de listas**: O Nginx carrega arquivos de reputação em formato IP CIDR (StopForumSpam, Spamhaus, FireHOL) e a lista dinâmica `honeypot_blocklist.txt` alimentada pelos honeypots locais.
+* **Descarte imediato**: Conexões originadas de IPs presentes nessa base recebem resposta `403 Forbidden` diretamente no Nginx, sem repassar processamento ao backend PHP.
+
+### 3. Camuflagem de software e headers enganosos
+* **Headers de tecnologia**: Modifica os cabeçalhos de resposta para simular uma infraestrutura Windows Server (`Server: Microsoft-IIS/10.0` e `X-Powered-By: ASP.NET`).
+* **Headers simulados de CDN**: Inclui cabeçalhos característicos de proxy de borda (`cf-ray`, `cf-cache-status`), confundindo scanners e ferramentas de enumeração de tecnologia que buscam servidores PHP e Nginx.
+
+### 4. Mecanismos defensivos ativos
+* **Redirecionamento em loop (Buraco Negro)**: Scanners automatizados que tentam localizar backups, dumps de banco (`.sql`), arquivos de configuração (`.env`, `.conf`) ou diretórios administrativos caem em rotas com redirecionamento cíclico 301.
+* **Gzip Decompression Bomb**: Requisitantes identificados com comportamento hostil persistente recebem arquivos altamente comprimidos que se expandem para gigabytes caso o cliente tente descompactar na memória, esgotando os recursos da ferramenta invasora.
+
+## Estrutura do diretório
 
 ```text
 waf/
-├── config/              # Overrides ModSecurity e listas de reputação de IP
-├── scripts/             # Scripts de atualização automática de blocklists e CVEs
-├── templates/           # Templates Nginx com camuflagem IIS/Cloudflare e geo $bad_ip
-└── errors/              # Páginas de erro customizadas do IIS e gzip bomb
+├── config/              # Regras customizadas do ModSecurity e arquivos de blocklist
+├── scripts/             # Scripts de atualização periódica de listas e regras CVE
+├── templates/           # Modelos de configuração do Nginx com camuflagem IIS e diretiva geo
+└── errors/              # Páginas de erro customizadas do IIS e artefatos de defesa ativa
 ```
 
+## Operações e comandos do WAF
+
+Testar a sintaxe dos arquivos de configuração do Nginx dentro do contêiner WAF ativo:
+```bash
+docker exec -it app_waf_php83 nginx -t
+```
+
+Recarregar regras e listas de bloqueio sem encerrar conexões:
+```bash
+docker exec -it app_waf_php83 nginx -s reload
+```
+
+Acompanhar os logs de bloqueio do ModSecurity em tempo real:
+```bash
+docker logs -f app_waf_php83
+```

@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # ConfiguraÃ§Ã£o DinÃ¢mica do Traefik v2.11 Load Balancer
 # Roteia e balanceia o trÃ¡fego para os clusters WAF (PHP 7.4, 8.2, 8.3, 8.4, 8.5)
 # ==============================================================================
@@ -355,7 +355,7 @@ http:
     auth-loadbalance:
       basicAuth:
         users:
-          - "admin:$2y$05$17R7vSANMuy5MI7o2T1ENeNem4PfX.rVo5CfSwk5ukCfBulDZAJzO"
+          - "admin:$2y$05$get.nTYHt6qoloed5Zt6/Ook92sUb.awY5JKnGNogunG6nxO03TWe"
 
     strip-loadbalance:
       stripPrefix:

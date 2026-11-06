@@ -194,5 +194,5 @@ chmod +x install.sh
 
 * **Aplicação principal**: `http://localhost/` ou `https://localhost/`
 * **Auditoria de serviços**: `http://localhost/info.php` ou `https://localhost/info.php`
-* **Dashboard Traefik**: `https://localhost/load-balance/` (autenticação: `admin` / `Skyteam@2026`)
+* **Dashboard Traefik**: `https://localhost/load-balance/` (autenticação: `admin` / `Admin@2026`, gerenciada via `.env`)
 * **Dashboard Moqesh IA**: `https://honeypot.localhost/` (login nativo: `admin` / senha do `.env`)

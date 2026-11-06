@@ -1,35 +1,42 @@
-# 👁️ Sentinela Guardian & Monitoramento de Integridade
+# Camada de observabilidade e integridade (Sentinela)
 
-O Sentinela (`app_monitor`) é um serviço em segundo plano desenvolvido em Python responsável pela **observabilidade contínua de recursos** e **defesa de integridade do cluster**.
+O serviço Sentinela (`app_monitor`) é um daemon desenvolvido em Python responsável pela monitoração contínua de recursos do sistema, verificação de integridade de arquivos em conjunto com o antivírus ClamAV, despacho de alertas multicanal e acompanhamento de boletins oficiais de cibersegurança do governo brasileiro.
 
----
+## Repositórios e documentação oficial
 
-## 🚀 Principais Responsabilidades
+* [Repositório da biblioteca psutil em Python](https://github.com/giampaolo/psutil)
+* [Documentação oficial do psutil](https://psutil.readthedocs.io/)
+* [Documentação da API de bots do Telegram](https://core.telegram.org/bots/api)
+* [Portal do CTIR Gov Brasil (GSI/PR)](https://www.gov.br/ctir/pt-br)
+* [Documentação da API de envio SMS Legal](https://smslegal.com.br/)
+* [Guia do módulo smtplib do Python](https://docs.python.org/3/library/smtplib.html)
 
-1. **Monitoramento de Recursos do Host**:
-   - Amostragem contínua a cada 60 segundos de consumo de **CPU**, **Memória RAM** e **Disco**.
-   - Gatilho de alerta programável quando o consumo ultrapassar `70.0%`.
-2. **Integração com o Antivírus ClamAV**:
-   - Varredura de integridade da pasta compartilhada de uploads (`/scandata` mapeada em `Application/`).
-   - Movimentação automática de malwares identificados para a pasta de quarentena isolada.
-3. **Canais Multi-Plataforma de Notificação**:
-   - **Telegram**: Mensagens instantâneas via Telegram Bot API com métricas do alerta.
-   - **E-mail**: Notificações HTML estilizadas via Amazon SES / SMTP seguro.
-   - **SMS**: Disparo de SMS crítico para administradores via gateway SMS Legal.
+## O que cada componente faz
 
-4. **Monitoramento Oficial de Cibersegurança (CTIR Gov)**:
-   - Consulta contínua à base de alertas do **GSI / CTIR Gov** (`https://www.gov.br/gsi/pt-br/assuntos/ctir/alertas`).
-   - Disparo imediato e deduplicado via **Telegram**, **E-mail** e **SMS Legal** a cada nova vulnerabilidade pública emitida.
-   - Persistência de baseline e histórico em `logs/sentinela/ctir_alerts_seen.json`.
+### 1. Monitor de recursos de hardware
+* **Coleta de métricas**: A cada 60 segundos, consulta métricas de utilização de CPU, memória RAM e armazenamento em disco através da biblioteca `psutil`.
+* **Disparo por limiar**: Quando a utilização de qualquer um desses recursos ultrapassa o limite padrão (70% ou valor definido no `.env`), o Sentinela registra o evento e dispara mensagens de alerta aos administradores.
 
----
+### 2. Integração com o antivírus ClamAV
+* **Inspeção de uploads**: O daemon monitora o diretório de dados `/scandata` (mapeado para `Application/`) e submete arquivos ao socket do ClamAV (`app_clamav:3310`).
+* **Tratamento de infecções**: Se um arquivo for classificado como infectado, o Sentinela move o artefato imediatamente para o diretório isolado de quarentena e emite notificações detalhadas contendo o nome da ameaça identificada.
 
-## 📁 Estrutura de Arquivos
+### 3. Central multicanal de notificações
+O Sentinela implementa três canais independentes de comunicação para garantir que falhas e ameaças cheguem à equipe:
+* **Telegram**: Envio direto para os identificadores cadastrados em `TELEGRAM_CHAT_ID` via API de bots.
+* **E-mail corporativo**: Envio de mensagens formatadas com templates HTML localizados em `sentinela/emails/` via SMTP autenticado ou Amazon SES.
+* **SMS crítico**: Envio de mensagens de texto SMS para os números configurados no `.env` utilizando a API da SMS Legal.
+
+### 4. Monitor de ameaças do CTIR Gov (`ctir_gov_checker.py`)
+* **Acompanhamento ativo**: Consulta periodicamente o portal do Centro de Prevenção, Tratamento e Resposta a Incidentes Cibernéticos de Governo (CTIR Gov / GSI).
+* **Prevenção de duplicidade**: Armazena o hash e a identificação dos boletins processados no arquivo `logs/sentinela/ctir_alerts_seen.json`.
+* **Notificação antecipada**: Notifica a equipe imediatamente assim que um novo alerta de vulnerabilidade zero-day ou campanha maliciosa é publicado pelo órgão oficial brasileiro.
+
+## Estrutura do diretório
 
 ```text
 sentinela/
-├── docker/          # Dockerfile com ambiente Python e dependências do Sentinela
-├── emails/          # Templates HTML para e-mails de alerta (antivírus, recursos, SSL, cibersegurança)
-└── monitor/         # Código-fonte principal do daemon (monitor.py e ctir_gov_checker.py)
+├── docker/          # Dockerfile do serviço em Python com bibliotecas de sistema
+├── emails/          # Templates HTML para notificações (recursos, antivírus, SSL e cibersegurança)
+└── monitor/         # Código-fonte do daemon (monitor.py e ctir_gov_checker.py)
 ```
-

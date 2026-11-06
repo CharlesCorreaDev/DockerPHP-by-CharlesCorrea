@@ -1,6 +1,6 @@
 # Docker PHP Enterprise - Multi-Versão (7.4, 8.2, 8.3, 8.4, 8.5)
 
-Cluster Docker voltado a alta disponibilidade, observabilidade e segurança de borda. Suporta execução paralela de múltiplas versões do PHP, Load Balancer Traefik v2.11, WAF com OWASP ModSecurity CRS, armadilhas honeypot para agentes de IA e scanners, FrankenPHP em Worker Mode, antivírus ClamAV e agente Sentinela com telemetria e despacho de alertas em tempo real.
+Cluster Docker voltado a alta disponibilidade, observabilidade e segurança de borda. Suporta execução paralela de múltiplas versões do PHP, Load Balancer Traefik v2.11, WAF com OWASP ModSecurity CRS, armadilhas honeypot para agentes de IA e scanners, FrankenPHP em Worker Mode, antivírus ClamAV e agente Sentinela com telemetria e despacho de alertas em tempo real. O ambiente inclui mitigação nativa e virtual contra ameaças críticas recentes, como HTTP2Shell, php2shell e vulnerabilidades do Kernel Linux.
 
 > Configuração regional: Fuso de Brasília (`America/Sao_Paulo`) e locale `pt-BR.UTF-8` em todos os contêineres e logs.
 
@@ -136,7 +136,9 @@ Cada camada possui manual técnico dedicado com arquitetura, variáveis e comand
 ### 4. WAF OWASP ModSecurity CRS e Nginx
 - Inspeção profunda de corpo e resposta contra ataques do OWASP Top 10.
 - Bloqueio imediato de IPs listados em `geo $bad_ip` (alimentado pelos honeypots e listas de reputação).
-- Mitigação virtual contra vulnerabilidades `CVE-2026-109618` e `CVE-2026-109619`.
+- **Combate a vulnerabilidades críticas de mercado (HTTP2Shell e php2shell)**:
+  - **HTTP2Shell (CVE-2026-111497)**: Mitigação contra corrupção de memória e buffer overflow por pacotes compactados anômalos através do middleware `mw-buffering` no Traefik (limitando payloads e alocação de memória) e sanitização rigorosa de cabeçalhos.
+  - **php2shell (CVE-2026-109618 e CVE-2026-109619)**: Regras virtuais dedicadas em `waf/config/php2shell-mitigation.conf` bloqueando tentativas de sobrescrever diretivas de runtime do PHP (`allow_url_include`, `auto_prepend_file`, `disable_functions`, etc.) e injeção de parâmetros de CLI (`-d memory_limit`).
 
 ### 5. Auditoria de serviços em tempo real (`info.php`)
 Painel integrado em `http://localhost/info.php` que checa o status de operação dos 8 serviços da infraestrutura:
